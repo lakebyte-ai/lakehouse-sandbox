@@ -1,0 +1,210 @@
+services:
+
+  polaris:
+    image: apache/polaris:1.0.0-incubating
+    platform: linux/amd64
+    ports:
+      - "8181:8181"
+    networks:
+      - local-iceberg-lakehouse
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_REGION: dummy-region
+      AWS_ENDPOINT_URL_S3: http://minio:9000
+      AWS_ENDPOINT_URL_STS: http://minio:9000
+      POLARIS_BOOTSTRAP_CREDENTIALS: default-realm,root,secret
+      polaris.features.DROP_WITH_PURGE_ENABLED: true # allow dropping tables from the SQL client
+      polaris.realm-context.realms: default-realm
+    healthcheck:
+      test: ["CMD", "curl", "http://localhost:8182/healthcheck"]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+
+  polaris-config:
+    image: alpine/httpie:latest
+    depends_on:
+      polaris:
+        condition: service_healthy
+    networks:
+      - local-iceberg-lakehouse
+    volumes:
+      - $PWD:/data/
+    entrypoint: >
+      /bin/sh -c '
+      set -e;
+      echo "Waiting for Polaris to be ready...";
+      until http GET http://polaris:8182/healthcheck > /dev/null 2>&1; do
+        sleep 2;
+      done;
+      echo "Polaris is ready.";
+      echo "Running setup.";
+      /data/setup.sh;
+
+      echo "Polaris configured successfully. Container will stay up for monitoring.";
+      touch /tmp/setup-completed;
+      tail -f /dev/null;
+      '
+    healthcheck:
+      test: ["CMD-SHELL", "[ -f /tmp/setup-completed ]"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  trino:
+    image: trinodb/trino:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - TRINO_JVM_OPTS=-Xmx2G
+    networks:
+      - local-iceberg-lakehouse
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+
+  minio:
+    image: minio/minio:latest
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_REGION: dummy-region
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password
+      MINIO_DOMAIN: minio
+    networks:
+      local-iceberg-lakehouse:
+        aliases:
+          - warehouse.minio
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    command: ["server", "/data", "--console-address", ":9001"]
+
+  minio-client:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    networks:
+      - local-iceberg-lakehouse
+    volumes:
+      - /tmp:/tmp
+    environment:
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_REGION: dummy-region
+    entrypoint: >
+      /bin/sh -c "
+      until (mc alias set minio http://minio:9000 admin password) do echo '...waiting...' && sleep 1; done;
+      mc rm -r --force minio/warehouse;
+      mc mb minio/warehouse;
+      mc anonymous set public minio/warehouse;
+      tail -f /dev/null
+      "
+
+  spark-iceberg:
+# docker compose exec spark-iceberg bash -c "apt-get update && apt-get install -y pandoc"
+    image: tabulario/spark-iceberg
+    container_name: spark-iceberg
+    environment:
+      - AWS_ACCESS_KEY_ID=admin
+      - AWS_SECRET_ACCESS_KEY=password
+      - AWS_REGION=us-east-1
+    networks:
+      - local-iceberg-lakehouse
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/iceberg/notebooks
+
+  nimtable-web:
+    image: ghcr.io/nimtable/nimtable-web:nightly
+    restart: unless-stopped
+    ports:
+      - "13000:3000"
+    environment:
+      - JAVA_API_URL=http://nimtable:8182
+      - DATABASE_URL=postgresql://nimtable_user:password@nimtable-database:5432/nimtable
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+    depends_on:
+      - nimtable
+    networks:
+      - local-iceberg-lakehouse
+
+  # Backend application
+  nimtable:
+    image: ghcr.io/nimtable/nimtable:nightly
+    restart: unless-stopped
+    depends_on:
+      nimtable-database:
+        condition: service_healthy
+      polaris-config:
+        condition: service_healthy
+    ports:
+      - "18182:8182"
+    # Mount configuration files
+    configs:
+      - source: config.yaml
+        target: /nimtable/config.yaml
+    environment:
+      JAVA_OPTS: -Xmx32g -Xms512m
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: password
+      AWS_REGION: dummy-region
+      AWS_ENDPOINT_URL_S3: http://minio:9000
+    networks:
+      - local-iceberg-lakehouse
+
+  # Database to persist nimtable data.
+  # Make sure the setting in config.yaml is consistent with this.
+  nimtable-database:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nimtable_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nimtable
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nimtable_user -d nimtable"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - local-iceberg-lakehouse
+
+
+volumes:
+  nimtable-data-postgres:
+
+configs:
+  config.yaml:
+    content: |
+      # Nimtable config file to be mounted into the Docker containers.
+      # See backend/config.yaml for more complete example
+      server:
+        port: 8182
+        host: 0.0.0.0
+      database:
+        # You can also point to your own Postgres database, instead of using the one provided by docker-compose.
+        url: jdbc:postgresql://nimtable-database:5432/nimtable
+        username: nimtable_user
+        password: password
+      catalogs:
+        - name: polaris
+          type: rest
+          uri: http://polaris:8181/api/catalog/
+          warehouse: polariscatalog
+          io-impl: org.apache.iceberg.aws.s3.S3FileIO
+          s3.endpoint: http://minio:9000
+          s3.access-key-id: admin
+          s3.secret-access-key: password
+          s3.region: us-east-1
+          s3.path-style-access: true
+          credential: root:secret
+          scope: PRINCIPAL_ROLE:ALL
+
+networks:
+  local-iceberg-lakehouse:
+    name: local-iceberg-lakehouse
