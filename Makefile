@@ -16,6 +16,7 @@ NC := \033[0m # No Color
 COMPOSE_CORE := docker-compose.yml
 COMPOSE_KAFKA := docker-compose.kafka.yml
 COMPOSE_AIRFLOW := docker-compose.airflow.yml
+COMPOSE_WEBUI := docker-compose.webui.yml
 
 # Environment files
 ENV_AIRFLOW := .env.airflow
@@ -88,11 +89,48 @@ airflow-init: network ## Initialize Airflow (run once)
 	@echo "$(YELLOW)Initializing Airflow...$(NC)"
 	@docker-compose -f $(COMPOSE_AIRFLOW) --env-file $(ENV_AIRFLOW) up airflow-init
 
+## WebUI Services
+webui-up: network ## Start Web UI services (development mode)
+	@echo "$(GREEN)Starting WebUI services in development mode...$(NC)"
+	@cd webui/backend && npm install --silent
+	@cd webui/frontend && npm install --silent
+	@echo "$(YELLOW)Starting backend server...$(NC)"
+	@cd webui/backend && npm start > webui-backend.log 2>&1 &
+	@sleep 3
+	@echo "$(YELLOW)Starting frontend dev server...$(NC)"
+	@cd webui/frontend && npm run dev > webui-frontend.log 2>&1 &
+	@sleep 2
+	@echo "$(GREEN)WebUI services started!$(NC)"
+	@echo "  Frontend: http://localhost:3000"
+	@echo "  Backend:  http://localhost:5001"
+
+webui-down: ## Stop Web UI services
+	@echo "$(RED)Stopping WebUI services...$(NC)"
+	@pkill -f "node.*server.js" 2>/dev/null || echo "WebUI backend not running"
+	@pkill -f "vite.*dev" 2>/dev/null || echo "WebUI frontend not running"
+	@rm -f webui-backend.log webui-frontend.log 2>/dev/null || true
+
+webui-status: ## Show status of Web UI services
+	@echo "$(CYAN)WebUI Services Status:$(NC)"
+	@pgrep -f "node.*server.js" > /dev/null && echo "  ✅ Backend: Running on http://localhost:5001" || echo "  ❌ Backend: Not running"
+	@pgrep -f "vite.*dev" > /dev/null && echo "  ✅ Frontend: Running on http://localhost:3000" || echo "  ❌ Frontend: Not running"
+
+webui-logs: ## Show logs for Web UI services
+	@echo "$(CYAN)WebUI Backend Logs:$(NC)"
+	@tail -f webui-backend.log 2>/dev/null || echo "No backend logs found"
+
+webui-build: ## Build WebUI for production
+	@echo "$(BLUE)Building WebUI for production...$(NC)"
+	@cd webui/backend && npm install --silent
+	@cd webui/frontend && npm install --silent && npm run build
+	@echo "$(GREEN)WebUI built successfully!$(NC)"
+
 # === COMBINED OPERATIONS ===
 
 all: network core-up kafka-up airflow-up ## Start all services
 	@echo "$(GREEN)All services started!$(NC)"
 	@echo "$(YELLOW)Access URLs:$(NC)"
+	@echo "  WebUI:       http://localhost:5001 (API) + http://localhost:3000 (UI)"
 	@echo "  Airflow:     http://localhost:8090 (admin/admin)"
 	@echo "  Kafka UI:    http://localhost:8091"
 	@echo "  Trino:       http://localhost:8080"
@@ -183,11 +221,45 @@ healthcheck: ## Show health status of all services
 	@echo "$(CYAN)=== HEALTH CHECK ===$(NC)"
 	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep -E "(lakehouse-sandbox|kafka|spark-iceberg)"
 
+# === TESTING ===
+
+test: ## Run comprehensive integration tests
+	@echo "$(CYAN)=== INTEGRATION TESTS ===$(NC)"
+	@./tests/integration/run_tests.sh
+
+test-verbose: ## Run integration tests with verbose output
+	@echo "$(CYAN)=== INTEGRATION TESTS (VERBOSE) ===$(NC)"
+	@./tests/integration/run_tests.sh --verbose
+
+test-core: ## Test only core services (Polaris, Trino, MinIO, Spark, Nimtable)
+	@echo "$(CYAN)=== CORE SERVICES TESTS ===$(NC)"
+	@./tests/integration/run_tests.sh --groups core
+
+test-kafka: ## Test only Kafka cluster services
+	@echo "$(CYAN)=== KAFKA CLUSTER TESTS ===$(NC)"
+	@./tests/integration/run_tests.sh --groups kafka
+
+test-airflow: ## Test only Airflow services
+	@echo "$(CYAN)=== AIRFLOW SERVICES TESTS ===$(NC)"
+	@./tests/integration/run_tests.sh --groups airflow
+
+test-integrations: ## Test service integrations and networking
+	@echo "$(CYAN)=== SERVICE INTEGRATION TESTS ===$(NC)"
+	@./tests/integration/run_tests.sh --groups integrations
+
+test-report: ## Run tests and generate JSON report
+	@echo "$(CYAN)=== INTEGRATION TESTS WITH REPORT ===$(NC)"
+	@mkdir -p reports
+	@./tests/integration/run_tests.sh --output reports/integration-test-report.json
+	@echo "$(GREEN)Report saved to: reports/integration-test-report.json$(NC)"
+
 # === INFO ===
 
 info: ## Show service information and URLs
 	@echo "$(CYAN)=== LAKEHOUSE SANDBOX INFO ===$(NC)"
 	@echo "$(YELLOW)Service Access URLs:$(NC)"
+	@echo "  WebUI Backend:     http://localhost:5001 (Management API)"
+	@echo "  WebUI Frontend:    http://localhost:3000 (Coming in Phase 2)"
 	@echo "  Airflow Web UI:    http://localhost:8090 (admin/admin)"
 	@echo "  Kafka UI:          http://localhost:8091"
 	@echo "  Trino Web UI:      http://localhost:8080"

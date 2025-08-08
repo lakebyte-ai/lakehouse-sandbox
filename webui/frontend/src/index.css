@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 min-h-screen;
+  }
+}
+
+@layer components {
+  .service-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .service-running {
+    @apply border-l-4 border-green-500;
+  }
+  
+  .service-stopped {
+    @apply border-l-4 border-red-500;
+  }
+  
+  .service-starting {
+    @apply border-l-4 border-yellow-500;
+  }
+  
+  .service-not-created {
+    @apply border-l-4 border-gray-400;
+  }
+  
+  .btn-primary {
+    @apply bg-lakehouse-600 hover:bg-lakehouse-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-success {
+    @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .log-viewer {
+    @apply bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-lg overflow-auto max-h-96;
+  }
+  
+  .status-indicator {
+    @apply w-3 h-3 rounded-full;
+  }
+  
+  .status-running {
+    @apply bg-green-500 animate-pulse;
+  }
+  
+  .status-stopped {
+    @apply bg-red-500;
+  }
+  
+  .status-starting {
+    @apply bg-yellow-500 animate-pulse-slow;
+  }
+  
+  .status-not-created {
+    @apply bg-gray-400;
+  }
+}
