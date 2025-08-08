@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-08-08T15:43:41.505662",
+  "overall_status": "FAIL",
+  "summary": {
+    "total_tests": 21,
+    "passed": 18,
+    "failed": 3,
+    "warnings": 0,
+    "skipped": 0,
+    "duration": 5.0612828731536865
+  },
+  "groups": [
+    {
+      "name": "Core Services",
+      "tests": [
+        {
+          "name": "Trino Query Engine",
+          "status": 

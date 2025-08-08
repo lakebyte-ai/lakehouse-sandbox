@@ -1,32 +1,37 @@
 # 🏗️ Lakehouse Sandbox
 
-> A comprehensive data lakehouse environment with Apache Iceberg, Polaris Catalog, Apache Kafka, Apache Airflow, Apache Trino, Apache Spark, and MinIO - all orchestrated with an easy-to-use Makefile.
+> A comprehensive data lakehouse environment with Apache Iceberg, Polaris Catalog, Apache Kafka, Apache Airflow, Apache Trino, Apache Spark, and MinIO - all orchestrated with an easy-to-use Makefile and modern Web UI.
 
 ## 🚀 Quick Start
 
 Get your entire lakehouse environment running in seconds:
 
 ```bash
-# Start everything
+# Start everything (including WebUI)
 make all
+
+# Launch the WebUI management interface
+make webui-up
 
 # Check what's running  
 make status
 
+# Run integration tests to verify everything works
+make test
+
 # View service URLs and credentials
 make info
-
-# Stop everything
-make down
 ```
 
-That's it! Your full lakehouse stack is ready to use.
+That's it! Your full lakehouse stack is ready to use with a modern web interface at **http://localhost:3000**.
 
 ## 📋 Table of Contents
 
 - [🏗️ Architecture Overview](#️-architecture-overview)
 - [🛠️ Prerequisites](#️-prerequisites)
 - [⚡ Getting Started](#-getting-started)
+- [🌐 Web UI Management](#-web-ui-management)
+- [🧪 Integration Testing](#-integration-testing)
 - [🎯 Service Access](#-service-access)
 - [📦 Service Management](#-service-management)
 - [💻 Development Workflows](#-development-workflows)
@@ -84,6 +89,7 @@ graph TB
 - **⚙️ Apache Spark**: Unified analytics engine for big data processing
 - **💾 MinIO**: S3-compatible object storage
 - **🌐 Nimtable**: Modern web UI for Iceberg table management
+- **🎛️ WebUI**: Comprehensive management interface for all services
 
 ## 🛠️ Prerequisites
 
@@ -91,7 +97,8 @@ graph TB
 - **Docker Compose** (2.0+)
 - **Make** (pre-installed on most Unix systems)
 - **8GB+ RAM** recommended for full stack
-- **Available Ports**: 8080, 8090-8091, 8181, 8888, 9000-9001, 9092-9094, 13000, 18182, 5433
+- **Python 3.7+** with `requests` library (for integration testing)
+- **Available Ports**: 3000, 5001, 8080, 8090-8091, 8181, 8888, 9000-9001, 9092-9094, 13000, 18182, 5433
 
 ## ⚡ Getting Started
 
@@ -111,10 +118,168 @@ make all
 make status
 ```
 
-### 4. Get Access Information
+### 4. Launch Web UI (Optional but Recommended)
+```bash
+make webui-up
+```
+
+### 5. Run Integration Tests
+```bash
+make test
+```
+
+### 6. Get Access Information
 ```bash
 make info
 ```
+
+## 🌐 Web UI Management
+
+The Lakehouse Sandbox includes a modern, comprehensive Web UI for managing all services, monitoring health, and running tests.
+
+### 🚀 Quick Start
+
+```bash
+# Start the Web UI
+make webui-up
+
+# Check WebUI status
+make webui-status
+
+# Stop the Web UI
+make webui-down
+```
+
+**Access the Web UI at: http://localhost:3000**
+
+### ✨ Features
+
+- **🎛️ Service Management**: Start, stop, restart individual services or entire service groups
+- **📊 Real-time Monitoring**: Live service status with detailed metrics breakdown
+- **📈 Resource Monitoring**: CPU, memory, network, and disk usage for all containers
+- **📝 Log Viewer**: Stream logs from any service in real-time
+- **⚙️ Configuration Editor**: Edit service configuration files with live validation
+- **🖥️ Terminal Access**: Direct shell access to any container
+- **🧪 Integration Testing**: Run comprehensive tests directly from the UI
+- **📄 System Information**: Docker system info, container details, and health status
+
+### 📊 Service Status Dashboard
+
+The main dashboard shows:
+- **Total Services**: 14 services across all groups
+- **Status Breakdown**: Running, stopped, paused, and not-created counts
+- **Service Groups**: Core Services, Kafka Cluster, Airflow Orchestration
+- **Individual Controls**: Start/stop/restart buttons for each service
+- **Quick Access**: Direct links to service UIs with credentials
+
+### 🎯 Service Groups
+
+1. **Core Services (5 services)**:
+   - Polaris Catalog, Trino Query Engine, MinIO Console, Spark Jupyter, Nimtable UI
+
+2. **Kafka Cluster (4 services)**:
+   - Kafka Brokers 1-3, Kafka UI (KRaft mode - no Zookeeper needed)
+
+3. **Airflow Orchestration (5 services)**:
+   - Airflow Web, Scheduler, Worker, PostgreSQL, Redis
+
+### 🔧 Advanced Features
+
+- **Real-time Updates**: WebSocket connections for live status updates
+- **Individual Service Controls**: Granular management without affecting other services
+- **Configuration Management**: Edit `.env` files and docker-compose configurations
+- **Terminal Sessions**: Multi-tab terminal access with persistent sessions
+- **Resource Monitoring**: Historical charts and real-time metrics
+- **Test Execution**: Run integration tests and view detailed reports
+
+## 🧪 Integration Testing
+
+Comprehensive testing framework to verify all services are working correctly after changes.
+
+### 🚀 Quick Testing
+
+```bash
+# Run all integration tests
+make test
+
+# Run with detailed output
+make test-verbose
+
+# Generate detailed JSON report
+make test-report
+```
+
+### 🎯 Focused Testing
+
+```bash
+# Test specific service groups
+make test-core           # Core services only (7 tests)
+make test-kafka          # Kafka cluster only (6 tests)  
+make test-airflow        # Airflow services only (5 tests)
+make test-integrations   # Service integrations (3 tests)
+```
+
+### 📊 Test Categories
+
+#### Core Services Tests
+- **Polaris Catalog**: API connectivity and authentication
+- **Trino Query Engine**: REST API and SQL capabilities
+- **MinIO**: Console and S3 API endpoints
+- **Spark Jupyter**: Notebook API availability
+- **Nimtable**: Web UI accessibility
+
+#### Kafka Cluster Tests  
+- **Kafka UI**: Management interface functionality
+- **Kafka Brokers**: All 3 brokers health in KRaft mode
+- **Topic Operations**: Creation, listing, and management
+- **Inter-broker Communication**: Cluster health verification
+
+#### Airflow Services Tests
+- **Web UI**: Health checks and API access
+- **Scheduler**: Service health verification
+- **Worker**: Celery worker status
+- **PostgreSQL**: Database connectivity  
+- **Redis**: Message broker functionality
+
+#### Integration Tests
+- **Docker Network**: Container connectivity verification
+- **WebUI Backend**: Management API functionality
+- **Container Count**: Expected service count validation
+
+### 📈 Understanding Results
+
+```bash
+✅ Kafka Cluster (6/6 passed)
+❌ Core Services (5/7 passed, 2 failed)
+  ✅ Polaris Catalog API: HTTP 401 (auth required - expected) (0.12s)
+  ❌ Trino Query Engine: Connection refused (0.01s)
+  
+📊 Overall Status: FAIL (18/21 tests passed)
+```
+
+### 🛠️ Advanced Testing Options
+
+```bash
+# Custom timeout and groups
+./tests/integration/run_tests.sh --groups core kafka --timeout 60 --verbose
+
+# Python test runner directly  
+python3 tests/integration/test_runner.py --help
+
+# API-triggered tests (via WebUI)
+curl -X POST http://localhost:5001/api/test/run \
+  -H "Content-Type: application/json" \
+  -d '{"groups": ["core"], "verbose": true}'
+```
+
+### 📄 Test Reports
+
+JSON reports include:
+- **Test Results**: Pass/fail status with timing
+- **Diagnostic Information**: Error messages and details
+- **Service Health**: Individual service status
+- **Performance Metrics**: Test execution times
+- **Historical Tracking**: Compare results over time
 
 ## 🎯 Service Access
 
@@ -122,6 +287,7 @@ After running `make all`, access your services:
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
+| **🎛️ WebUI Management** | http://localhost:3000 | - |
 | **Airflow** | http://localhost:8090 | admin / admin |
 | **Kafka UI** | http://localhost:8091 | - |
 | **Trino** | http://localhost:8080 | admin / (no password) |
@@ -131,6 +297,7 @@ After running `make all`, access your services:
 | **Nimtable** | http://localhost:13000 | admin / admin |
 
 ### API Endpoints
+- **WebUI Backend API**: http://localhost:5001/api
 - **MinIO API**: http://localhost:9000
 - **Nimtable API**: http://localhost:18182
 - **Airflow Postgres**: localhost:5433
@@ -160,6 +327,19 @@ make kafka-up kafka-down kafka-status kafka-logs kafka-restart
 
 # Airflow workflow engine
 make airflow-up airflow-down airflow-status airflow-logs airflow-restart
+```
+
+### Web UI Management
+```bash
+# Web UI for service management
+make webui-up webui-down webui-status webui-logs
+```
+
+### Integration Testing
+```bash
+# Comprehensive testing framework
+make test test-verbose test-report
+make test-core test-kafka test-airflow test-integrations
 ```
 
 ### Development Helpers
@@ -517,9 +697,71 @@ make core-restart
 make kafka-restart  
 make airflow-restart
 
-# Full integration test
-make clean-all && make all
+# Full integration test with verification
+make clean-all && make all && make test
 ```
 
+## 🚀 Developer Productivity Tips
+
+### Quick Development Cycle
+```bash
+# 1. Start everything with WebUI
+make all && make webui-up
+
+# 2. Open WebUI for real-time monitoring
+open http://localhost:3000
+
+# 3. Verify all services are healthy
+make test
+
+# 4. Start developing with confidence!
+```
+
+### Daily Workflow
+```bash
+# Morning startup
+make all && make webui-up && make test
+
+# Check logs for any service via WebUI or CLI
+make airflow-logs  # or use WebUI log viewer
+
+# Test specific changes
+make test-kafka    # after Kafka config changes
+make test-core     # after core service updates
+
+# Quick health check anytime
+make status        # or check WebUI dashboard
+
+# End of day cleanup (optional)
+make down
+```
+
+### Troubleshooting Workflow
+```bash
+# 1. Check service status
+make status
+
+# 2. Run focused tests
+make test-verbose
+
+# 3. Check logs for failing services
+make airflow-logs  # or use WebUI
+
+# 4. Restart problematic services
+make airflow-restart  # or use WebUI individual controls
+
+# 5. Verify fix
+make test-airflow
+```
+
+### Best Practices
+- **Always run `make test` after changes** - catches issues early
+- **Use WebUI for real-time monitoring** - visual feedback is faster
+- **Leverage individual service controls** - faster than restarting everything
+- **Check integration tests regularly** - ensures service compatibility
+- **Use service groups for development** - test only what you're changing
+
 ---
-**Happy Data Engineering!** 🚀
+**Happy Data Engineering with Lakehouse Sandbox!** 🚀
+
+*Now with comprehensive Web UI management, real-time monitoring, and automated testing - making lakehouse development faster and more reliable than ever!*
