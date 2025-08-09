@@ -1,6 +1,8 @@
-# Snowflake Sandbox Service
+# Snowflake Sandbox Service (Experimental)
 
-A production-ready Snowflake SQL compatibility layer powered by Trino and Ibis, providing a Snowflake-like experience for development, testing, and migration scenarios.
+⚠️ **EXPERIMENTAL**: This is an experimental Snowflake SQL compatibility layer powered by Trino and Ibis. For production use cases, consider [LocalStack for Snowflake](https://www.localstack.cloud/localstack-for-snowflake) or real Snowflake instances.
+
+An open-source Snowflake-like experience for development, testing, and learning scenarios.
 
 ## Features
 
@@ -389,6 +391,10 @@ curl http://localhost:8080/v1/info
 2. Verify health: `curl http://localhost:5432/health`
 3. Run tests: `make test-core`
 4. Check documentation: `http://localhost:5432/docs`
+
+## ⚠️ Experimental Status
+
+This is an **experimental implementation** for learning, development, and research purposes.
 
 ## License
 
