@@ -13,6 +13,8 @@ export interface ServiceInfo {
   url?: string;
   credentials?: string;
   exists?: boolean;
+  apiUrl?: string;
+  docsUrl?: string;
 }
 
 export interface ServiceGroup {

@@ -86,7 +86,8 @@ class IntegrationTestRunner:
                 'minio_console': {'port': 9001, 'path': '/api/v1/login', 'auth_required': False},
                 'minio_api': {'port': 9000, 'path': '/minio/health/live', 'auth_required': False},
                 'spark': {'port': 8888, 'path': '/api', 'auth_required': False},
-                'nimtable': {'port': 13000, 'path': '/health', 'auth_required': False, 'allow_redirect': True}
+                'nimtable': {'port': 13000, 'path': '/health', 'auth_required': False, 'allow_redirect': True},
+                'snowflake_sandbox': {'port': 5432, 'path': '/health', 'auth_required': False}
             },
             'kafka': {
                 'kafka_ui': {'port': 8091, 'path': '/api/clusters', 'auth_required': False}
@@ -104,6 +105,7 @@ class IntegrationTestRunner:
             'minio': 'lakehouse-sandbox-minio-1',
             'spark': 'spark-iceberg',
             'nimtable': 'lakehouse-sandbox-nimtable-database-1',
+            'snowflake_sandbox': 'lakehouse-sandbox-snowflake-sandbox-1',
             'kafka1': 'kafka1',
             'kafka2': 'kafka2',
             'kafka3': 'kafka3',
@@ -274,6 +276,13 @@ class IntegrationTestRunner:
                 expected_codes=[200, 307]  # Allow redirects
             ))
             
+            # Snowflake Sandbox
+            futures.append(executor.submit(
+                self.http_test,
+                "Snowflake Sandbox Health",
+                "http://localhost:5432/health"
+            ))
+            
             for future in concurrent.futures.as_completed(futures):
                 tests.append(future.result())
         
@@ -284,6 +293,65 @@ class IntegrationTestRunner:
             ['trino', '--server', 'localhost:8080', '--execute', 'SHOW CATALOGS']
         )
         tests.append(trino_test)
+        
+        # Snowflake Sandbox API tests
+        snowflake_api_test = self.http_test(
+            "Snowflake Sandbox API",
+            "http://localhost:5432/api/v1/status"
+        )
+        tests.append(snowflake_api_test)
+        
+        snowflake_docs_test = self.http_test(
+            "Snowflake Sandbox Docs",
+            "http://localhost:5432/docs"
+        )
+        tests.append(snowflake_docs_test)
+        
+        # Test SQL translation endpoint
+        try:
+            import requests
+            start_time = time.time()
+            response = requests.post(
+                "http://localhost:5432/api/v1/query",
+                json={
+                    "sql": "SELECT CURRENT_WAREHOUSE(), CURRENT_DATABASE()",
+                    "request_id": "test-123"
+                },
+                timeout=self.timeout
+            )
+            duration = time.time() - start_time
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                if result_data.get('success'):
+                    tests.append(TestResult(
+                        name="Snowflake SQL Translation",
+                        status=TestStatus.PASS,
+                        message="SQL translation successful",
+                        duration=duration,
+                        details={'translated_sql': result_data.get('translated_sql', '')}
+                    ))
+                else:
+                    tests.append(TestResult(
+                        name="Snowflake SQL Translation",
+                        status=TestStatus.FAIL,
+                        message=f"SQL execution failed: {result_data.get('error', 'Unknown error')}",
+                        duration=duration
+                    ))
+            else:
+                tests.append(TestResult(
+                    name="Snowflake SQL Translation",
+                    status=TestStatus.FAIL,
+                    message=f"HTTP {response.status_code}",
+                    duration=duration
+                ))
+        except Exception as e:
+            tests.append(TestResult(
+                name="Snowflake SQL Translation",
+                status=TestStatus.FAIL,
+                message=f"Request failed: {str(e)}",
+                duration=0.0
+            ))
         
         return ServiceGroup(name="Core Services", tests=tests)
 
