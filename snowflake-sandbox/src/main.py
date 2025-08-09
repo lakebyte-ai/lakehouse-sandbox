@@ -51,8 +51,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="Snowflake Sandbox",
-    description="Snowflake-compatible API powered by Trino and Ibis",
+    title="Snowflake Sandbox (Experimental)",
+    description="⚠️ Experimental Snowflake-compatible API powered by Trino and Ibis for learning and development",
     version=settings.version,
     lifespan=lifespan
 )
