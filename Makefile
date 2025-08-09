@@ -127,10 +127,11 @@ webui-build: ## Build WebUI for production
 
 # === COMBINED OPERATIONS ===
 
-all: network core-up kafka-up airflow-up ## Start all services
+all: network core-up kafka-up airflow-up webui-up ## Start all services including WebUI
 	@echo "$(GREEN)All services started!$(NC)"
 	@echo "$(YELLOW)Access URLs:$(NC)"
-	@echo "  WebUI:       http://localhost:5001 (API) + http://localhost:3000 (UI)"
+	@echo "  $(BOLD)WebUI:       http://localhost:3000 (Management Interface)$(NC)"
+	@echo "  WebUI API:   http://localhost:5001"
 	@echo "  Airflow:     http://localhost:8090 (admin/admin)"
 	@echo "  Kafka UI:    http://localhost:8091"
 	@echo "  Trino:       http://localhost:8080"
@@ -141,7 +142,7 @@ all: network core-up kafka-up airflow-up ## Start all services
 
 up: all ## Alias for 'all'
 
-down: ## Stop all services
+down: webui-down ## Stop all services including WebUI
 	@echo "$(RED)Stopping all services...$(NC)"
 	@docker-compose -f $(COMPOSE_AIRFLOW) --env-file $(ENV_AIRFLOW) down
 	@docker-compose -f $(COMPOSE_KAFKA) down
@@ -272,4 +273,4 @@ info: ## Show service information and URLs
 	@echo "  MinIO API:         http://localhost:9000"
 	@echo "  Nimtable API:      http://localhost:18182"
 	@echo "  Airflow Postgres:  localhost:5433"
-	@echo "  Kafka Brokers:     localhost:9092,localhost:9093,localhost:9094"
+	@echo "  Kafka Broker:      localhost:9092"

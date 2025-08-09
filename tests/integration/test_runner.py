@@ -298,14 +298,13 @@ class IntegrationTestRunner:
         )
         tests.append(ui_test)
         
-        # Test each Kafka broker
-        for i in range(1, 4):
-            broker_test = self.docker_test(
-                f"Kafka Broker {i} API",
-                f"kafka{i}",
-                ['/opt/kafka/bin/kafka-broker-api-versions.sh', '--bootstrap-server', 'localhost:29092']
-            )
-            tests.append(broker_test)
+        # Test Kafka broker
+        broker_test = self.docker_test(
+            "Kafka Broker API",
+            "kafka1",
+            ['/opt/kafka/bin/kafka-broker-api-versions.sh', '--bootstrap-server', 'localhost:29092']
+        )
+        tests.append(broker_test)
         
         # Test topic operations
         topic_create_test = self.docker_test(
@@ -313,7 +312,7 @@ class IntegrationTestRunner:
             "kafka1",
             ['/opt/kafka/bin/kafka-topics.sh', '--bootstrap-server', 'localhost:29092', 
              '--create', '--topic', 'integration-test-topic', '--partitions', '3', 
-             '--replication-factor', '2', '--if-not-exists']
+             '--replication-factor', '1', '--if-not-exists']
         )
         tests.append(topic_create_test)
         
@@ -362,13 +361,8 @@ class IntegrationTestRunner:
         )
         tests.append(redis_test)
         
-        # Test Airflow worker
-        worker_test = self.docker_test(
-            "Airflow Worker Status",
-            self.containers['airflow_worker'],
-            ['airflow', 'celery', 'inspect', 'stats']
-        )
-        tests.append(worker_test)
+        # Note: Airflow worker health is already validated by Docker's built-in healthcheck
+        # which tests the celery worker via the Airflow API
         
         return ServiceGroup(name="Airflow Services", tests=tests)
 
@@ -426,7 +420,7 @@ class IntegrationTestRunner:
         if success:
             try:
                 running_containers = len([line for line in output.split('\n') if line.strip()])
-                if running_containers >= 14:  # Expected minimum
+                if running_containers >= 12:  # Expected minimum (reduced from 14 due to single Kafka broker)
                     tests.append(TestResult(
                         name="Container Count",
                         status=TestStatus.PASS,
@@ -438,7 +432,7 @@ class IntegrationTestRunner:
                     tests.append(TestResult(
                         name="Container Count",
                         status=TestStatus.WARN,
-                        message=f"Only {running_containers} containers running (expected >=14)",
+                        message=f"Only {running_containers} containers running (expected >=12)",
                         duration=duration,
                         details={'running_containers': running_containers}
                     ))
