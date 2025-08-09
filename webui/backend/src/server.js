@@ -22,7 +22,43 @@ const io = socketIo(server, {
 });
 
 const PORT = process.env.PORT || 5001;
-const LAKEHOUSE_ROOT = process.env.LAKEHOUSE_ROOT || path.resolve(__dirname, '../../../');
+
+// Auto-detect lakehouse root directory
+function findLakehouseRoot() {
+  if (process.env.LAKEHOUSE_ROOT) {
+    return process.env.LAKEHOUSE_ROOT;
+  }
+  
+  // Auto-detect by walking up the directory tree looking for Makefile + docker-compose files
+  const fs = require('fs');
+  let currentDir = __dirname;
+  
+  // Walk up the directory tree
+  while (currentDir !== path.dirname(currentDir)) { // Stop at filesystem root
+    const makefilePath = path.join(currentDir, 'Makefile');
+    const dockerComposePath = path.join(currentDir, 'docker-compose.yml');
+    
+    if (fs.existsSync(makefilePath) && fs.existsSync(dockerComposePath)) {
+      // Verify it's actually a lakehouse-sandbox by checking Makefile content
+      try {
+        const makefileContent = fs.readFileSync(makefilePath, 'utf8');
+        if (makefileContent.includes('Lakehouse Sandbox') && makefileContent.includes('core-up')) {
+          return currentDir;
+        }
+      } catch (error) {
+        // Continue searching if we can't read the file
+      }
+    }
+    
+    // Move up one directory
+    currentDir = path.dirname(currentDir);
+  }
+  
+  // Fallback to relative path calculation
+  return path.resolve(__dirname, '../../../');
+}
+
+const LAKEHOUSE_ROOT = findLakehouseRoot();
 
 // Middleware
 app.use(cors());

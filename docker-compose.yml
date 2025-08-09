@@ -62,6 +62,18 @@ services:
       - local-iceberg-lakehouse
     volumes:
       - ./trino/catalog:/etc/trino/catalog
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+        reservations:
+          memory: 1g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/v1/info"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   minio:
     image: minio/minio:latest
@@ -80,6 +92,18 @@ services:
       - "9001:9001"
       - "9000:9000"
     command: ["server", "/data", "--console-address", ":9001"]
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   minio-client:
     image: minio/mc:latest
@@ -116,6 +140,18 @@ services:
       - "8888:8888"
     volumes:
       - ./notebooks:/home/iceberg/notebooks
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/api"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   nimtable-web:
     image: ghcr.io/nimtable/nimtable-web:nightly

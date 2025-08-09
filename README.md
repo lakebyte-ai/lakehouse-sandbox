@@ -83,7 +83,7 @@ graph TB
 
 - **🗄️ Apache Iceberg**: Open table format with ACID transactions
 - **📊 Polaris Catalog**: Centralized metadata management for Iceberg
-- **🔄 Apache Kafka**: High-throughput event streaming (3-node cluster)
+- **🔄 Apache Kafka**: High-throughput event streaming (single broker for local development)
 - **⚡ Apache Airflow**: Workflow orchestration and scheduling
 - **🧮 Apache Trino**: Distributed SQL query engine
 - **⚙️ Apache Spark**: Unified analytics engine for big data processing
@@ -166,7 +166,7 @@ make webui-down
 ### 📊 Service Status Dashboard
 
 The main dashboard shows:
-- **Total Services**: 14 services across all groups
+- **Total Services**: 12 services across all groups
 - **Status Breakdown**: Running, stopped, paused, and not-created counts
 - **Service Groups**: Core Services, Kafka Cluster, Airflow Orchestration
 - **Individual Controls**: Start/stop/restart buttons for each service
@@ -177,8 +177,8 @@ The main dashboard shows:
 1. **Core Services (5 services)**:
    - Polaris Catalog, Trino Query Engine, MinIO Console, Spark Jupyter, Nimtable UI
 
-2. **Kafka Cluster (4 services)**:
-   - Kafka Brokers 1-3, Kafka UI (KRaft mode - no Zookeeper needed)
+2. **Kafka Cluster (2 services)**:
+   - Kafka Broker, Kafka UI (single broker for local development)
 
 3. **Airflow Orchestration (5 services)**:
    - Airflow Web, Scheduler, Worker, PostgreSQL, Redis
@@ -214,7 +214,7 @@ make test-report
 ```bash
 # Test specific service groups
 make test-core           # Core services only (7 tests)
-make test-kafka          # Kafka cluster only (6 tests)  
+make test-kafka          # Kafka cluster only (4 tests)  
 make test-airflow        # Airflow services only (5 tests)
 make test-integrations   # Service integrations (3 tests)
 ```
@@ -230,9 +230,9 @@ make test-integrations   # Service integrations (3 tests)
 
 #### Kafka Cluster Tests  
 - **Kafka UI**: Management interface functionality
-- **Kafka Brokers**: All 3 brokers health in KRaft mode
+- **Kafka Broker**: Single broker health in KRaft mode
 - **Topic Operations**: Creation, listing, and management
-- **Inter-broker Communication**: Cluster health verification
+- **Broker Communication**: Single broker health verification
 
 #### Airflow Services Tests
 - **Web UI**: Health checks and API access
@@ -301,7 +301,7 @@ After running `make all`, access your services:
 - **MinIO API**: http://localhost:9000
 - **Nimtable API**: http://localhost:18182
 - **Airflow Postgres**: localhost:5433
-- **Kafka Brokers**: localhost:9092, localhost:9093, localhost:9094
+- **Kafka Broker**: localhost:9092
 
 ## 📦 Service Management
 
@@ -410,7 +410,7 @@ spark = SparkSession.builder \
 df = spark \
     .readStream \
     .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka1:29092,kafka2:29092,kafka3:29092") \
+    .option("kafka.bootstrap.servers", "kafka1:29092") \
     .option("subscribe", "user_events") \
     .load()
 
@@ -461,7 +461,7 @@ WHERE u.event_date >= current_date - interval '7' day;
 docker exec kafka1 kafka-topics \
     --create --topic user-events \
     --bootstrap-server localhost:29092 \
-    --partitions 3 --replication-factor 3
+    --partitions 3 --replication-factor 1
 
 # Produce messages
 echo '{"user_id": 123, "event": "page_view", "timestamp": "2024-01-01T10:00:00Z"}' | \
@@ -477,7 +477,7 @@ from datetime import datetime
 
 # Producer
 producer = KafkaProducer(
-    bootstrap_servers=['localhost:9092', 'localhost:9093', 'localhost:9094'],
+    bootstrap_servers=['localhost:9092'],
     value_serializer=lambda x: json.dumps(x).encode('utf-8')
 )
 
@@ -496,7 +496,7 @@ producer.flush()
 # Consumer
 consumer = KafkaConsumer(
     'user-events',
-    bootstrap_servers=['localhost:9092', 'localhost:9093', 'localhost:9094'],
+    bootstrap_servers=['localhost:9092'],
     value_deserializer=lambda x: json.loads(x.decode('utf-8')),
     group_id='analytics-group'
 )

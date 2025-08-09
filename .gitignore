@@ -356,8 +356,8 @@ conda-lock.yml
 
 # ===== KEEP CERTAIN FILES =====
 # Important: Keep these files that are needed for the project
-# Environment files with secrets (use .env.airflow.example template)
-.env.airflow
+# Environment files - keep .env.airflow as it contains safe defaults for all developers
+!.env.airflow
 !airflow/dags/
 !airflow/dags/example_dag.py
 !notebooks/examples/
