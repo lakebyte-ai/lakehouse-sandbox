@@ -61,6 +61,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ service, onViewLogs, onServic
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
+          {/* Special handling for Snowflake Sandbox API docs */}
+          {service.displayName === 'Snowflake Sandbox' && service.docsUrl && (
+            <a
+              href={service.docsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-700 transition-colors"
+              title="Open API Documentation"
+            >
+              <Database className="w-4 h-4" />
+            </a>
+          )}
           {onViewLogs && service.exists !== false && (
             <button
               onClick={() => onViewLogs(service.name)}

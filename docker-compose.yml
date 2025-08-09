@@ -210,6 +210,36 @@ services:
     networks:
       - local-iceberg-lakehouse
 
+  # Snowflake Sandbox Service
+  snowflake-sandbox:
+    build: ./snowflake-sandbox
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - SNOWFLAKE_SANDBOX_TRINO_HOST=trino
+      - SNOWFLAKE_SANDBOX_TRINO_PORT=8080
+      - SNOWFLAKE_SANDBOX_LOG_LEVEL=INFO
+    depends_on:
+      trino:
+        condition: service_healthy
+      polaris-config:
+        condition: service_healthy
+    networks:
+      - local-iceberg-lakehouse
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5432/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 512m
+
 
 volumes:
   nimtable-data-postgres:

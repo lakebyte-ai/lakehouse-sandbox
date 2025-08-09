@@ -8,7 +8,7 @@ class DockerService {
     // Define service groups based on the lakehouse-sandbox structure
     this.serviceGroups = {
       core: [
-        'polaris', 'trino', 'minio', 'spark-iceberg', 'nimtable'
+        'polaris', 'trino', 'minio', 'spark-iceberg', 'nimtable', 'snowflake-sandbox'
       ],
       kafka: [
         'kafka1', 'kafka2', 'kafka3', 'kafka-ui'
@@ -30,6 +30,7 @@ class DockerService {
       'minio': { port: 9001, name: 'MinIO Console', group: 'core', url: 'http://localhost:9001', credentials: 'admin/password' },
       'spark-iceberg': { port: 8888, name: 'Spark Jupyter', group: 'core', url: 'http://localhost:8888' },
       'nimtable': { port: 13000, name: 'Nimtable UI', group: 'core', url: 'http://localhost:13000', credentials: 'admin/admin' },
+      'snowflake-sandbox': { port: 5432, name: 'Snowflake Sandbox', group: 'core', url: 'http://localhost:5432', apiUrl: 'http://localhost:5432/api/v1', docsUrl: 'http://localhost:5432/docs' },
       
       // Kafka services (KRaft mode - no Zookeeper needed)
       'kafka1': { port: 9092, name: 'Kafka Broker 1', group: 'kafka' },
@@ -192,6 +193,7 @@ class DockerService {
       'minio': 'minio',
       'spark-iceberg': 'spark-iceberg',
       'nimtable': 'nimtable',
+      'snowflake-sandbox': 'lakehouse-sandbox-snowflake-sandbox-1',
       'kafka1': 'kafka1',
       'kafka2': 'kafka2', 
       'kafka3': 'kafka3',

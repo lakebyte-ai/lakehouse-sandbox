@@ -139,6 +139,7 @@ all: network core-up kafka-up airflow-up webui-up ## Start all services includin
 	@echo "  Spark:       http://localhost:8888"
 	@echo "  MinIO:       http://localhost:9001 (admin/password)"
 	@echo "  Nimtable:    http://localhost:13000 (admin/admin)"
+	@echo "  Snowflake:   http://localhost:5432 (API), http://localhost:5432/docs"
 
 up: all ## Alias for 'all'
 
@@ -268,9 +269,11 @@ info: ## Show service information and URLs
 	@echo "  Spark Jupyter:     http://localhost:8888"
 	@echo "  MinIO Console:     http://localhost:9001 (admin/password)"
 	@echo "  Nimtable Web:      http://localhost:13000 (admin/admin)"
+	@echo "  Snowflake Sandbox: http://localhost:5432/docs"
 	@echo ""
 	@echo "$(YELLOW)API Endpoints:$(NC)"
 	@echo "  MinIO API:         http://localhost:9000"
 	@echo "  Nimtable API:      http://localhost:18182"
+	@echo "  Snowflake API:     http://localhost:5432/api/v1"
 	@echo "  Airflow Postgres:  localhost:5433"
 	@echo "  Kafka Broker:      localhost:9092"
