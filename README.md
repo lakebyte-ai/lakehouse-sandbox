@@ -1,6 +1,6 @@
 # 🏗️ Lakehouse Sandbox
 
-> A comprehensive data lakehouse environment with Apache Iceberg, Polaris Catalog, Apache Kafka, Apache Airflow, Apache Trino, Apache Spark, and MinIO - all orchestrated with an easy-to-use Makefile and modern Web UI.
+> A comprehensive data lakehouse environment with Apache Iceberg, Polaris Catalog, Apache Kafka, Apache Airflow, Apache Trino, Apache Spark, MinIO, and cloud-native SQL sandboxes (Databricks, Snowflake) - all orchestrated with an easy-to-use Makefile and modern Web UI.
 
 ## 🚀 Quick Start
 
@@ -57,6 +57,8 @@ graph TB
     subgraph "Processing Layer"
         S[Apache Spark]
         T[Apache Trino]
+        DB[Databricks SQL]
+        SF[Snowflake SQL]
     end
     
     subgraph "Storage Layer"
@@ -74,6 +76,8 @@ graph TB
     AF --> S
     S --> I
     T --> I
+    DB --> I
+    SF --> I
     I --> MI
     P --> I
     N --> P
@@ -90,6 +94,8 @@ graph TB
 - **💾 MinIO**: S3-compatible object storage
 - **🌐 Nimtable**: Modern web UI for Iceberg table management
 - **🎛️ WebUI**: Comprehensive management interface for all services
+- **🔷 Databricks Sandbox**: Databricks SQL API emulation with PySpark integration
+- **❄️ Snowflake Sandbox**: Snowflake SQL API emulation for testing and development
 
 ## 🛠️ Prerequisites
 
@@ -98,7 +104,7 @@ graph TB
 - **Make** (pre-installed on most Unix systems)
 - **8GB+ RAM** recommended for full stack
 - **Python 3.7+** with `requests` library (for integration testing)
-- **Available Ports**: 3000, 5001, 8080, 8090-8091, 8181, 8888, 9000-9001, 9092-9094, 13000, 18182, 5433
+- **Available Ports**: 3000, 5001, 8080, 8090-8091, 8181, 8888, 9000-9001, 9092-9094, 13000, 18000, 18182, 5433-5435
 
 ## ⚡ Getting Started
 
@@ -166,22 +172,25 @@ make webui-down
 ### 📊 Service Status Dashboard
 
 The main dashboard shows:
-- **Total Services**: 12 services across all groups
+- **Total Services**: 16+ services across all groups
 - **Status Breakdown**: Running, stopped, paused, and not-created counts
-- **Service Groups**: Core Services, Kafka Cluster, Airflow Orchestration
+- **Service Groups**: Core Services, Kafka Cluster, Airflow Orchestration, Sandbox Services
 - **Individual Controls**: Start/stop/restart buttons for each service
 - **Quick Access**: Direct links to service UIs with credentials
 
 ### 🎯 Service Groups
 
-1. **Core Services (5 services)**:
-   - Polaris Catalog, Trino Query Engine, MinIO Console, Spark Jupyter, Nimtable UI
+1. **Core Services (7 services)**:
+   - Polaris Catalog, Trino Query Engine, MinIO Console, Spark Jupyter, Nimtable UI, plus supporting services
 
 2. **Kafka Cluster (2 services)**:
    - Kafka Broker, Kafka UI (single broker for local development)
 
-3. **Airflow Orchestration (5 services)**:
-   - Airflow Web, Scheduler, Worker, PostgreSQL, Redis
+3. **Airflow Orchestration (6 services)**:
+   - Airflow Web, Scheduler, Worker, PostgreSQL, Redis, Triggerer
+
+4. **Sandbox Services (2 services)**:
+   - Databricks SQL API Sandbox, Snowflake SQL API Sandbox
 
 ### 🔧 Advanced Features
 
@@ -215,8 +224,9 @@ make test-report
 # Test specific service groups
 make test-core           # Core services only (7 tests)
 make test-kafka          # Kafka cluster only (4 tests)  
-make test-airflow        # Airflow services only (5 tests)
+make test-airflow        # Airflow services only (6 tests)
 make test-integrations   # Service integrations (3 tests)
+make test-sandbox        # Sandbox services only (Databricks & Snowflake)
 ```
 
 ### 📊 Test Categories
@@ -245,6 +255,12 @@ make test-integrations   # Service integrations (3 tests)
 - **Docker Network**: Container connectivity verification
 - **WebUI Backend**: Management API functionality
 - **Container Count**: Expected service count validation
+
+#### Sandbox Services Tests
+- **Databricks SQL API**: SQL statement execution and Unity Catalog operations
+- **Snowflake API**: SQL query processing and warehouse management
+- **API Documentation**: Interactive API docs and health endpoints
+- **Metrics Endpoints**: Prometheus metrics and monitoring
 
 ### 📈 Understanding Results
 
@@ -295,11 +311,16 @@ After running `make all`, access your services:
 | **Spark/Jupyter** | http://localhost:8888 | - |
 | **MinIO Console** | http://localhost:9001 | admin / password |
 | **Nimtable** | http://localhost:13000 | admin / admin |
+| **🔷 Databricks Sandbox** | http://localhost:5434/docs | - |
+| **❄️ Snowflake Sandbox** | http://localhost:5435/docs | - |
 
 ### API Endpoints
 - **WebUI Backend API**: http://localhost:5001/api
 - **MinIO API**: http://localhost:9000
 - **Nimtable API**: http://localhost:18182
+- **Databricks SQL API**: http://localhost:5434/api/2.0
+- **Databricks Metrics**: http://localhost:18000/metrics
+- **Snowflake SQL API**: http://localhost:5435/api/v1
 - **Airflow Postgres**: localhost:5433
 - **Kafka Broker**: localhost:9092
 
@@ -504,6 +525,80 @@ consumer = KafkaConsumer(
 for message in consumer:
     print(f"Received: {message.value}")
 ```
+
+### 🔷 Databricks SQL Development
+
+The Databricks sandbox provides a comprehensive SQL API emulation compatible with Databricks SQL Warehouses:
+
+#### API Access
+```bash
+# Access the Databricks SQL API documentation
+open http://localhost:5434/docs
+
+# Check service health and metrics
+curl http://localhost:18000/metrics
+```
+
+#### Execute SQL Statements
+```python
+import requests
+import json
+
+# Execute a SQL statement via Databricks SQL API
+response = requests.post(
+    "http://localhost:5434/api/2.0/sql/statements",
+    headers={"Content-Type": "application/json"},
+    json={
+        "statement": "SELECT * FROM iceberg.analytics.user_events LIMIT 10",
+        "warehouse_id": "local-warehouse",
+        "wait_timeout": "10s"
+    }
+)
+
+statement_id = response.json()["statement_id"]
+print(f"Statement ID: {statement_id}")
+
+# Get statement results
+results = requests.get(
+    f"http://localhost:5434/api/2.0/sql/statements/{statement_id}"
+)
+print(json.dumps(results.json(), indent=2))
+```
+
+#### Unity Catalog Operations
+```python
+# List catalogs
+catalogs = requests.get("http://localhost:5434/api/2.1/unity-catalog/catalogs")
+print("Available catalogs:", catalogs.json())
+
+# List schemas in a catalog
+schemas = requests.get("http://localhost:5434/api/2.1/unity-catalog/schemas?catalog_name=iceberg")
+print("Schemas in iceberg catalog:", schemas.json())
+
+# List tables in a schema
+tables = requests.get("http://localhost:5434/api/2.1/unity-catalog/tables?catalog_name=iceberg&schema_name=analytics")
+print("Tables in analytics schema:", tables.json())
+```
+
+#### SQL Warehouses Management
+```python
+# List available SQL warehouses
+warehouses = requests.get("http://localhost:5434/api/2.0/sql/warehouses")
+print("Available warehouses:", warehouses.json())
+
+# Get warehouse details
+warehouse = requests.get("http://localhost:5434/api/2.0/sql/warehouses/local-warehouse")
+print("Warehouse details:", warehouse.json())
+```
+
+#### Features
+- **Databricks SQL API Compatibility**: Full REST API emulation
+- **Unity Catalog Integration**: Catalog, schema, and table operations
+- **SQL Warehouse Management**: Warehouse lifecycle and configuration
+- **Spark Integration**: Powered by PySpark for actual query execution
+- **Iceberg Support**: Direct integration with Apache Iceberg tables
+- **Metrics and Monitoring**: Prometheus metrics on port 18000
+- **Health Checks**: Built-in health monitoring and status endpoints
 
 ## 🔧 Advanced Usage
 

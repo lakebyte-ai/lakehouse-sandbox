@@ -14,7 +14,7 @@ from typing import List, Dict, Any
 class SnowflakeSandboxTester:
     """Comprehensive tester for the Snowflake Sandbox service."""
     
-    def __init__(self, base_url: str = "http://localhost:5432"):
+    def __init__(self, base_url: str = "http://localhost:5435"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api/v1"
         self.timeout = 30
@@ -353,7 +353,7 @@ def main():
     if len(sys.argv) > 1:
         base_url = sys.argv[1]
     else:
-        base_url = "http://localhost:5432"
+        base_url = "http://localhost:5435"
     
     tester = SnowflakeSandboxTester(base_url)
     

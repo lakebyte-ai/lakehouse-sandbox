@@ -1,6 +1,7 @@
 const Docker = require('dockerode');
 const { exec } = require('child_process');
 const util = require('util');
+const axios = require('axios');
 
 const execAsync = util.promisify(exec);
 
@@ -429,6 +430,87 @@ class ResourceMonitorService {
       systemHistoryPoints: this.systemHistory.length,
       maxHistoryPoints: this.maxHistoryPoints
     };
+  }
+
+  /**
+   * Get health status of all lakehouse services
+   * @returns {Promise<object>} Services health status
+   */
+  async getServicesHealth() {
+    const services = {
+      polaris: { name: 'Polaris Catalog', url: 'http://localhost:8181/api/catalog/', port: 8181 },
+      trino: { name: 'Trino Query Engine', url: 'http://localhost:8080/v1/info', port: 8080 },
+      minio: { name: 'MinIO Storage', url: 'http://localhost:9000/minio/health/live', port: 9000 },
+      'spark-iceberg': { name: 'Spark Iceberg', url: 'http://localhost:8888/api', port: 8888 },
+      nimtable: { name: 'NimTable', url: 'http://localhost:18182/api/health', port: 18182 },
+      'snowflake-sandbox': { name: 'Snowflake Sandbox (Experimental)', url: 'http://localhost:5435/health', port: 5435 },
+      'databricks-sandbox': { name: 'Databricks Sandbox (Experimental)', url: 'http://localhost:5434/health', port: 5434 }
+    };
+
+    const results = {};
+    
+    for (const [key, service] of Object.entries(services)) {
+      try {
+        const startTime = Date.now();
+        const response = await axios.get(service.url, { timeout: 5000 });
+        const responseTime = Date.now() - startTime;
+        
+        results[key] = {
+          name: service.name,
+          status: 'healthy',
+          responseTime,
+          port: service.port,
+          lastCheck: new Date().toISOString(),
+          details: response.data || 'OK'
+        };
+      } catch (error) {
+        results[key] = {
+          name: service.name,
+          status: 'unhealthy',
+          port: service.port,
+          lastCheck: new Date().toISOString(),
+          error: error.message,
+          details: error.response?.data || null
+        };
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Get metrics from a specific service
+   * @param {string} serviceName - Name of the service
+   * @returns {Promise<object|null>} Service metrics
+   */
+  async getServiceMetrics(serviceName) {
+    const metricsEndpoints = {
+      'snowflake-sandbox': 'http://localhost:5432/metrics',
+      'databricks-sandbox': 'http://localhost:18000/metrics'
+    };
+
+    const endpoint = metricsEndpoints[serviceName];
+    if (!endpoint) {
+      return null;
+    }
+
+    try {
+      const response = await axios.get(endpoint, { 
+        timeout: 5000,
+        headers: { 'Accept': 'text/plain' }
+      });
+      
+      return {
+        raw: response.data,
+        contentType: response.headers['content-type'],
+        lastUpdated: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        error: error.message,
+        lastAttempt: new Date().toISOString()
+      };
+    }
   }
 }
 

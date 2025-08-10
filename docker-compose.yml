@@ -215,7 +215,7 @@ services:
     build: ./snowflake-sandbox
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5435:5432"
     environment:
       - SNOWFLAKE_SANDBOX_TRINO_HOST=trino
       - SNOWFLAKE_SANDBOX_TRINO_PORT=8080
@@ -239,6 +239,40 @@ services:
           memory: 1g
         reservations:
           memory: 512m
+
+  # Databricks Sandbox Service
+  databricks-sandbox:
+    build: ./databricks-sandbox
+    restart: unless-stopped
+    ports:
+      - "5434:5434"  # Main API
+      - "18000:8000" # Metrics
+    environment:
+      - DATABRICKS_SANDBOX_SPARK_MASTER=spark://spark-iceberg:7077
+      - DATABRICKS_SANDBOX_CATALOG_URI=http://polaris:8181/api/catalog/
+      - DATABRICKS_SANDBOX_S3_ENDPOINT=http://minio:9000
+      - DATABRICKS_SANDBOX_LOG_LEVEL=INFO
+    depends_on:
+      spark-iceberg:
+        condition: service_healthy
+      polaris-config:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - local-iceberg-lakehouse
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5434/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
 
 
 volumes:

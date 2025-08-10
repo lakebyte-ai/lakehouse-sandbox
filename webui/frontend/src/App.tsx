@@ -3,6 +3,7 @@ import { useServiceStatus } from './hooks/useServiceStatus';
 import { useCommandExecution, useSystemInfo } from './hooks/useCommands';
 import { apiService } from './services/api';
 import ServiceGroupPanel from './components/ServiceGroupPanel';
+import SandboxServicesPanel from './components/SandboxServicesPanel';
 import ControlPanel from './components/ControlPanel';
 import LogViewer from './components/LogViewer';
 import ConfigurationEditor from './components/ConfigurationEditor';
@@ -21,6 +22,8 @@ function App() {
   const [showTerminal, setShowTerminal] = useState(false);
   const [showResourceMonitor, setShowResourceMonitor] = useState(false);
   const [showSystemInfo, setShowSystemInfo] = useState(false);
+  const [showMetrics, setShowMetrics] = useState(false);
+  const [selectedMetricsService, setSelectedMetricsService] = useState<string | null>(null);
 
   const handleViewLogs = (serviceName: string) => {
     setSelectedService(serviceName);
@@ -52,6 +55,11 @@ function App() {
     } catch (error) {
       console.error(`Failed to ${action} ${serviceName}:`, error);
     }
+  };
+
+  const handleViewMetrics = (serviceName: string) => {
+    setSelectedMetricsService(serviceName);
+    setShowMetrics(true);
   };
 
   if (isLoading) {
@@ -216,6 +224,11 @@ function App() {
               onServiceAction={handleServiceAction}
               isExecutingCommand={isExecuting}
             />
+
+            {/* Sandbox Services */}
+            <SandboxServicesPanel
+              onViewMetrics={handleViewMetrics}
+            />
           </div>
         </div>
       </main>
@@ -333,6 +346,41 @@ function App() {
                     <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">Available</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Metrics viewer modal */}
+      {showMetrics && selectedMetricsService && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-5/6 overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Metrics: {selectedMetricsService}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowMetrics(false);
+                  setSelectedMetricsService(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="text-sm text-gray-600 mb-4">
+                Prometheus metrics endpoint for {selectedMetricsService}
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <iframe 
+                  src={`http://localhost:${selectedMetricsService === 'databricks-sandbox' ? '18000' : '5435'}/metrics`}
+                  className="w-full h-96 border border-gray-200"
+                  title={`${selectedMetricsService} metrics`}
+                />
               </div>
             </div>
           </div>
