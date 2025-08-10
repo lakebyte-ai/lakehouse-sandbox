@@ -1,0 +1,382 @@
+{
+  "timestamp": "2025-08-10T09:00:08.429761",
+  "service": "databricks-sandbox",
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0
+  },
+  "tests": [
+    {
+      "test": "Health Check",
+      "success": true,
+      "status_code": 200,
+      "response": {
+        "status": "healthy",
+        "service": "databricks-sandbox",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "test": "Root Endpoint",
+      "success": true,
+      "status_code": 200,
+      "response": {
+        "message": "Databricks SQL Sandbox API",
+        "version": "1.0.0",
+        "docs_url": "/docs",
+        "sql_warehouse": "lakehouse_sql_warehouse"
+      }
+    },
+    {
+      "test": "Basic SQL Statement",
+      "success": true,
+      "status_code": 200,
+      "response": {
+        "statement_id": "4c5a1cfe-de99-4267-b688-2ae1e1667c5f",
+        "status": {
+          "state": "SUCCEEDED",
+          "error": null
+        },
+        "result": {
+          "data_array": [
+            [
+              1
+            ]
+          ],
+          "schema": {
+            "columns": [
+              {
+                "name": "test_column",
+                "type_text": "IntegerType()",
+                "type_name": "INT",
+                "position": 0,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              }
+            ],
+            "column_count": 1
+          },
+          "row_count": 1,
+          "row_offset": 0,
+          "truncated": false,
+          "next_chunk_index": null,
+          "next_chunk_internal_link": null
+        },
+        "warehouse_id": "lakehouse_sql_warehouse",
+        "created_time": 1754830808225,
+        "started_time": null,
+        "completed_time": null,
+        "user_id": null,
+        "user_name": null
+      },
+      "statement_id": "4c5a1cfe-de99-4267-b688-2ae1e1667c5f",
+      "status": {
+        "state": "SUCCEEDED",
+        "error": null
+      },
+      "sql_success": true,
+      "row_count": 1,
+      "has_data": true
+    },
+    {
+      "test": "SQL Statement Lifecycle",
+      "success": true,
+      "execute_status": 200,
+      "statement_id": "06fbf120-9410-4556-a55c-d314f839c3ae",
+      "initial_response": {
+        "statement_id": "06fbf120-9410-4556-a55c-d314f839c3ae",
+        "status": {
+          "state": "SUCCEEDED",
+          "error": null
+        },
+        "result": {
+          "data_array": [
+            [
+              "spark_catalog",
+              "default",
+              42
+            ]
+          ],
+          "schema": {
+            "columns": [
+              {
+                "name": "current_catalog()",
+                "type_text": "StringType()",
+                "type_name": "STRING",
+                "position": 0,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              },
+              {
+                "name": "current_database()",
+                "type_text": "StringType()",
+                "type_name": "STRING",
+                "position": 1,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              },
+              {
+                "name": "magic_number",
+                "type_text": "IntegerType()",
+                "type_name": "INT",
+                "position": 2,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              }
+            ],
+            "column_count": 3
+          },
+          "row_count": 1,
+          "row_offset": 0,
+          "truncated": false,
+          "next_chunk_index": null,
+          "next_chunk_internal_link": null
+        },
+        "warehouse_id": "lakehouse_sql_warehouse",
+        "created_time": 1754830808261,
+        "started_time": null,
+        "completed_time": null,
+        "user_id": null,
+        "user_name": null
+      },
+      "get_status": 200,
+      "get_response": {
+        "statement_id": "06fbf120-9410-4556-a55c-d314f839c3ae",
+        "status": {
+          "state": "SUCCEEDED",
+          "error": null
+        },
+        "result": {
+          "data_array": [
+            [
+              "spark_catalog",
+              "default",
+              42
+            ]
+          ],
+          "schema": {
+            "columns": [
+              {
+                "name": "current_catalog()",
+                "type_text": "StringType()",
+                "type_name": "STRING",
+                "position": 0,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              },
+              {
+                "name": "current_database()",
+                "type_text": "StringType()",
+                "type_name": "STRING",
+                "position": 1,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              },
+              {
+                "name": "magic_number",
+                "type_text": "IntegerType()",
+                "type_name": "INT",
+                "position": 2,
+                "nullable": true,
+                "precision": null,
+                "scale": null
+              }
+            ],
+            "column_count": 3
+          },
+          "row_count": 1,
+          "row_offset": 0,
+          "truncated": false,
+          "next_chunk_index": null,
+          "next_chunk_internal_link": null
+        },
+        "warehouse_id": "lakehouse_sql_warehouse",
+        "created_time": 1754830808261,
+        "started_time": null,
+        "completed_time": null,
+        "user_id": null,
+        "user_name": null
+      },
+      "final_state": "SUCCEEDED",
+      "columns": [
+        {
+          "name": "current_catalog()",
+          "type_text": "StringType()",
+          "type_name": "STRING",
+          "position": 0,
+          "nullable": true,
+          "precision": null,
+          "scale": null
+        },
+        {
+          "name": "current_database()",
+          "type_text": "StringType()",
+          "type_name": "STRING",
+          "position": 1,
+          "nullable": true,
+          "precision": null,
+          "scale": null
+        },
+        {
+          "name": "magic_number",
+          "type_text": "IntegerType()",
+          "type_name": "INT",
+          "position": 2,
+          "nullable": true,
+          "precision": null,
+          "scale": null
+        }
+      ],
+      "data": [
+        [
+          "spark_catalog",
+          "default",
+          42
+        ]
+      ]
+    },
+    {
+      "test": "Spark Catalog Operations",
+      "success": true,
+      "results": {
+        "SHOW CATALOGS": {
+          "success": true,
+          "state": "SUCCEEDED",
+          "statement_id": "0c905aea-7b11-4135-aa43-c3f4e8ddb2ff",
+          "row_count": 1,
+          "columns": 1
+        },
+        "SHOW SCHEMAS": {
+          "success": true,
+          "state": "SUCCEEDED",
+          "statement_id": "bea93f89-e0dc-4ab3-b0b7-ebb132248d40",
+          "row_count": 1,
+          "columns": 1
+        },
+        "SHOW TABLES": {
+          "success": true,
+          "state": "SUCCEEDED",
+          "statement_id": "a0216b66-ee58-4f09-9460-b5792c0c1cb7",
+          "row_count": 0,
+          "columns": 3
+        }
+      }
+    },
+    {
+      "test": "Warehouse Operations",
+      "success": true,
+      "list_status": 200,
+      "warehouses": [
+        {
+          "id": "lakehouse_sql_warehouse",
+          "name": "Lakehouse SQL Warehouse",
+          "cluster_size": "2X-Small",
+          "state": "RUNNING"
+        }
+      ],
+      "warehouse_count": 1,
+      "get_warehouse_status": 200,
+      "warehouse_info": {
+        "id": "lakehouse_sql_warehouse",
+        "name": "Lakehouse SQL Warehouse",
+        "cluster_size": "2X-Small",
+        "state": "RUNNING"
+      }
+    },
+    {
+      "test": "Unity Catalog Endpoints",
+      "success": true,
+      "catalogs_status": 200,
+      "catalogs": {
+        "catalogs": [
+          {
+            "name": "spark_catalog",
+            "type": "MANAGED_CATALOG"
+          }
+        ]
+      },
+      "schemas_status": 200,
+      "schemas": {
+        "schemas": [
+          {
+            "name": "default",
+            "catalog_name": "spark_catalog"
+          }
+        ]
+      },
+      "tables_status": 200,
+      "tables": {
+        "tables": []
+      }
+    },
+    {
+      "test": "Clusters Endpoint",
+      "success": true,
+      "status_code": 200,
+      "response": {
+        "clusters": [
+          {
+            "cluster_id": "lakehouse-spark-cluster",
+            "cluster_name": "Lakehouse Spark Cluster",
+            "spark_version": "3.5.0",
+            "node_type_id": "i3.xlarge",
+            "driver_node_type_id": "i3.xlarge",
+            "num_workers": 1,
+            "state": "RUNNING"
+          }
+        ]
+      },
+      "cluster_count": 1
+    },
+    {
+      "test": "Execution Context",
+      "success": true,
+      "status_code": 200,
+      "response": {
+        "warehouse_id": "lakehouse_sql_warehouse",
+        "catalog": "spark_catalog",
+        "schema": "default"
+      },
+      "has_warehouse": true,
+      "has_catalog": true,
+      "has_schema": true
+    },
+    {
+      "test": "Error Handling",
+      "success": true,
+      "status_code": 200,
+      "response": {
+        "statement_id": "8851fa74-3d2c-467f-ae2d-c9bfdfb8406f",
+        "status": {
+          "state": "FAILED",
+          "error": {
+            "message": "[TABLE_OR_VIEW_NOT_FOUND] The table or view `non_existent_table_databricks_test` cannot be found. Verify the spelling and correctness of the schema and catalog.\nIf you did not qualify the name with a schema, verify the current_schema() output, or qualify the name with the correct schema and catalog.\nTo tolerate the error on drop use DROP VIEW IF EXISTS or DROP TABLE IF EXISTS.; line 1 pos 14;\n'Project [*]\n+- 'UnresolvedRelation [non_existent_table_databricks_test], [], false\n",
+            "error_code": "EXECUTION_ERROR",
+            "details": null
+          }
+        },
+        "result": null,
+        "warehouse_id": "lakehouse_sql_warehouse",
+        "created_time": 1754830808427,
+        "started_time": null,
+        "completed_time": null,
+        "user_id": null,
+        "user_name": null
+      },
+      "handled_error": true,
+      "error_state": "FAILED",
+      "error_details": {
+        "message": "[TABLE_OR_VIEW_NOT_FOUND] The table or view `non_existent_table_databricks_test` cannot be found. Verify the spelling and correctness of the schema and catalog.\nIf you did not qualify the name with a schema, verify the current_schema() output, or qualify the name with the correct schema and catalog.\nTo tolerate the error on drop use DROP VIEW IF EXISTS or DROP TABLE IF EXISTS.; line 1 pos 14;\n'Project [*]\n+- 'UnresolvedRelation [non_existent_table_databricks_test], [], false\n",
+        "error_code": "EXECUTION_ERROR",
+        "details": null
+      }
+    }
+  ]
+}

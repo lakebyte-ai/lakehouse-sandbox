@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     spark_thrift_server: str = "spark-iceberg"
     spark_thrift_port: int = 10000
     
+    # Thrift Server settings for JDBC/ODBC access
+    thrift_port: int = 10000
+    enable_thrift_server: bool = True
+    
     # Catalog settings (connect to Polaris)
     catalog_uri: str = "http://polaris:8181/api/catalog/"
     catalog_credential: str = "root:secret"
@@ -43,6 +47,22 @@ class Settings(BaseSettings):
     # Monitoring
     enable_metrics: bool = True
     metrics_port: int = 8000
+    
+    # Delta Lake settings
+    enable_delta_lake: bool = True
+    delta_log_store_class: str = "org.apache.spark.sql.delta.storage.S3SingleDriverLogStore"
+    
+    # DBFS settings (integration with MinIO)
+    dbfs_root: str = "s3a://databricks-dbfs"
+    enable_dbfs: bool = True
+    
+    # Jobs API settings
+    max_concurrent_jobs: int = 10
+    job_timeout_minutes: int = 60
+    
+    # Unity Catalog settings
+    enable_unity_catalog: bool = True
+    metastore_id: str = "lakehouse-metastore"
     
     class Config:
         env_prefix = "DATABRICKS_SANDBOX_"
