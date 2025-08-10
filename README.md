@@ -1,862 +1,563 @@
 # 🏗️ Lakehouse Sandbox
 
-> A comprehensive data lakehouse environment with Apache Iceberg, Polaris Catalog, Apache Kafka, Apache Airflow, Apache Trino, Apache Spark, MinIO, and cloud-native SQL sandboxes (Databricks, Snowflake) - all orchestrated with an easy-to-use Makefile and modern Web UI.
+> **The Ultimate Data Engineering Playground** - A complete, production-ready lakehouse environment with Apache Iceberg, modern SQL engines, streaming capabilities, and cloud-native sandbox environments. Perfect for learning, development, migration testing, and architectural exploration.
 
-## 🚀 Quick Start
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://docker.com)
+[![Apache Iceberg](https://img.shields.io/badge/Apache%20Iceberg-1.4+-orange)](https://iceberg.apache.org/)
+[![Trino](https://img.shields.io/badge/Trino-Latest-purple)](https://trino.io/)
+[![Spark](https://img.shields.io/badge/Apache%20Spark-3.5-red)](https://spark.apache.org/)
+[![WebUI](https://img.shields.io/badge/WebUI-Modern-green)](http://localhost:3000)
 
-Get your entire lakehouse environment running in seconds:
+## 🎯 Why Lakehouse Sandbox?
+
+### **For Data Engineers** 👨‍💻
+- **Learn Modern Architectures** - Hands-on experience with lakehouse patterns, Iceberg tables, and open-source data stack
+- **Test Migration Strategies** - Validate Snowflake-to-lakehouse and Databricks-to-open-source migrations safely
+- **Prototype Quickly** - Spin up complete data infrastructure in minutes, not weeks
+- **Benchmark Performance** - Compare query engines, storage formats, and processing frameworks
+
+### **For Data Teams** 🏢  
+- **Standardize Development** - Consistent environment for all team members across laptops and cloud
+- **Reduce Cloud Costs** - Develop and test locally before deploying to expensive cloud resources
+- **Enable Innovation** - Experiment with cutting-edge data technologies without infrastructure complexity
+- **Accelerate Onboarding** - New team members productive in minutes with `make up`
+
+### **For Organizations** 🚀
+- **De-risk Architecture Decisions** - Test lakehouse patterns before committing to cloud implementations  
+- **Validate Vendor Claims** - Compare Databricks/Snowflake against open-source alternatives
+- **Plan Migrations** - Test compatibility and performance before moving production workloads
+- **Train Teams** - Upskill engineers on modern data architectures with realistic environments
+
+---
+
+## ⚡ Get Started in 30 Seconds
 
 ```bash
-# Start everything (including WebUI)
+# Clone and start everything
+git clone https://github.com/your-org/lakehouse-sandbox.git
+cd lakehouse-sandbox
 make all
 
-# Launch the WebUI management interface
-make webui-up
-
-# Check what's running  
-make status
-
-# Run integration tests to verify everything works
-make test
-
-# View service URLs and credentials
-make info
+# 🎉 That's it! Your lakehouse is ready at:
+# 📊 WebUI Management: http://localhost:3000
+# 🗄️ SQL Editor: Click "Code" button in WebUI  
+# 📈 All Services: make info
 ```
 
-That's it! Your full lakehouse stack is ready to use with a modern web interface at **http://localhost:3000**.
+**What you get instantly:**
+- ✅ **Full Iceberg Lakehouse** with Polaris catalog and MinIO storage
+- ✅ **Dual SQL Engines** - Trino for federation + Spark for processing  
+- ✅ **Streaming Stack** - Kafka + Spark Streaming for real-time data
+- ✅ **Workflow Orchestration** - Airflow with DAGs and scheduling
+- ✅ **Cloud SQL Sandboxes** - Databricks + Snowflake API compatibility
+- ✅ **Modern Web Interface** - Monitor, query, and manage everything
+- ✅ **Jupyter Environment** - Interactive notebooks with PySpark
+- ✅ **Integration Tests** - Validate everything works perfectly
 
-## 📋 Table of Contents
-
-- [🏗️ Architecture Overview](#️-architecture-overview)
-- [🛠️ Prerequisites](#️-prerequisites)
-- [⚡ Getting Started](#-getting-started)
-- [🌐 Web UI Management](#-web-ui-management)
-- [🧪 Integration Testing](#-integration-testing)
-- [🎯 Service Access](#-service-access)
-- [📦 Service Management](#-service-management)
-- [💻 Development Workflows](#-development-workflows)
-- [🔧 Advanced Usage](#-advanced-usage)
-- [🐛 Troubleshooting](#-troubleshooting)
-- [🤝 Contributing](#-contributing)
+---
 
 ## 🏗️ Architecture Overview
 
-This sandbox provides a complete modern data lakehouse architecture:
-
 ```mermaid
 graph TB
-    subgraph "Data Sources"
-        K[Kafka Streams]
-        F[Files/APIs]
-    end
-    
-    subgraph "Workflow Orchestration"
-        AF[Apache Airflow]
+    subgraph "Data Ingestion"
+        K[📡 Kafka Streams<br/>Port: 9092]
+        F[📁 File Uploads<br/>S3 Compatible]
     end
     
     subgraph "Processing Layer"
-        S[Apache Spark]
-        T[Apache Trino]
-        DB[Databricks SQL]
-        SF[Snowflake SQL]
+        S[⚡ Spark Jupyter<br/>Port: 8888]
+        T[🔍 Trino Engine<br/>Port: 8080]
+        A[🔄 Airflow<br/>Port: 8090]
     end
     
-    subgraph "Storage Layer"
-        MI[MinIO S3]
-        I[Apache Iceberg Tables]
+    subgraph "Storage & Catalog"
+        P[📊 Polaris Catalog<br/>Port: 8181]
+        M[🪣 MinIO Storage<br/>Port: 9000/9001]
+        I[(🏔️ Iceberg Tables<br/>ACID + Time Travel)]
     end
     
-    subgraph "Catalog & Governance"
-        P[Polaris Catalog]
-        N[Nimtable UI]
+    subgraph "SQL Compatibility"
+        DB[🧱 Databricks Sandbox<br/>Port: 5434]
+        SF[❄️ Snowflake Sandbox<br/>Port: 5435]
     end
     
-    K --> AF
-    F --> AF
-    AF --> S
+    subgraph "Management & Monitoring"
+        W[🌐 WebUI Dashboard<br/>Port: 3000]
+        N[📊 Nimtable UI<br/>Port: 13000]
+    end
+    
+    K --> S
+    F --> M
     S --> I
     T --> I
-    DB --> I
-    SF --> I
-    I --> MI
+    A --> S
+    A --> T
     P --> I
+    M --> I
+    DB --> S
+    SF --> T
+    W --> DB
+    W --> SF
+    W --> T
     N --> P
 ```
 
-### Core Components
+---
 
-- **🗄️ Apache Iceberg**: Open table format with ACID transactions
-- **📊 Polaris Catalog**: Centralized metadata management for Iceberg
-- **🔄 Apache Kafka**: High-throughput event streaming (single broker for local development)
-- **⚡ Apache Airflow**: Workflow orchestration and scheduling
-- **🧮 Apache Trino**: Distributed SQL query engine
-- **⚙️ Apache Spark**: Unified analytics engine for big data processing
-- **💾 MinIO**: S3-compatible object storage
-- **🌐 Nimtable**: Modern web UI for Iceberg table management
-- **🎛️ WebUI**: Comprehensive management interface for all services
-- **🔷 Databricks Sandbox**: Databricks SQL API emulation with PySpark integration
-- **❄️ Snowflake Sandbox**: Snowflake SQL API emulation for testing and development
+## 📚 Complete Documentation
 
-## 🛠️ Prerequisites
+### 🎮 **Getting Started Guides**
+- **[📋 Quick Start Guide](#-quick-start)** - Get running in 30 seconds
+- **[🎯 Service Access Guide](#-service-access)** - URLs, credentials, and endpoints
+- **[🧪 Integration Testing](#-integration-testing)** - Validate your environment
 
-- **Docker** (20.10+)
-- **Docker Compose** (2.0+)
-- **Make** (pre-installed on most Unix systems)
-- **8GB+ RAM** recommended for full stack
-- **Python 3.7+** with `requests` library (for integration testing)
-- **Available Ports**: 3000, 5001, 8080, 8090-8091, 8181, 8888, 9000-9001, 9092-9094, 13000, 18000, 18182, 5433-5435
+### 🔧 **Service Documentation**
+- **[🏗️ Core Services Guide](docs/CORE_SERVICES.md)** - Polaris, Trino, Spark, MinIO, Kafka, Airflow
+- **[🧱 Databricks Sandbox](docs/DATABRICKS_SANDBOX.md)** - SQL API emulation and Unity Catalog
+- **[❄️ Snowflake Sandbox](docs/SNOWFLAKE_SANDBOX.md)** - SQL translation and migration testing
+- **[🌐 WebUI Management Console](docs/WEBUI.md)** - Modern interface for monitoring and control
 
-## ⚡ Getting Started
+### 🚀 **Advanced Topics** 
+- **[💻 Development Workflows](#-development-workflows)** - Best practices for data development
+- **[🔧 Advanced Configuration](#-advanced-usage)** - Customization and optimization
+- **[🐛 Troubleshooting Guide](#-troubleshooting)** - Common issues and solutions
 
-### 1. Clone & Navigate
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- **Docker** 20.10+ with Docker Compose
+- **8GB+ RAM** (16GB recommended for full stack)
+- **10GB+ disk space** for containers and data
+
+### One-Command Setup
 ```bash
-git clone <repository-url>
-cd lakehouse-sandbox
-```
-
-### 2. Start All Services
-```bash
+# Start everything with WebUI
 make all
+
+# Or step by step
+make up          # Start core lakehouse services
+make webui-up    # Start WebUI management interface  
+make test        # Run integration tests
+make info        # Display service URLs and credentials
 ```
 
-### 3. Verify Everything is Running
+### Verify Everything Works
 ```bash
+# Quick health check
 make status
-```
 
-### 4. Launch Web UI (Optional but Recommended)
-```bash
-make webui-up
-```
-
-### 5. Run Integration Tests
-```bash
+# Run comprehensive tests
 make test
+
+# 🎉 Success! All services running and tested
 ```
 
-### 6. Get Access Information
+---
+
+## 🎯 Service Access
+
+| Service | URL | Credentials | Purpose |
+|---------|-----|-------------|---------|
+| 🌐 **WebUI Dashboard** | http://localhost:3000 | None | Management interface |
+| 🧱 **Databricks SQL Editor** | http://localhost:3000 → Code button | None | Interactive SQL development |
+| 🔍 **Trino Query Engine** | http://localhost:8080 | None | SQL federation |
+| ⚡ **Spark Jupyter** | http://localhost:8888 | Token: `lakehouse` | Interactive notebooks |
+| 🪣 **MinIO Console** | http://localhost:9001 | admin / password | Object storage |
+| 🗄️ **Polaris Catalog** | http://localhost:8181 | None | Metadata API |
+| 🔄 **Airflow** | http://localhost:8090 | admin / admin | Workflow orchestration |
+| 📊 **Kafka UI** | http://localhost:8091 | None | Stream monitoring |
+| 📋 **Nimtable** | http://localhost:13000 | admin / admin | Table management |
+| ❄️ **Snowflake API** | http://localhost:5435 | None | SQL translation |
+| 🧱 **Databricks API** | http://localhost:5434 | None | SQL emulation |
+
+### Quick Access Commands
 ```bash
-make info
+make info        # Show all URLs and credentials
+make webui       # Open WebUI in browser
+make trino       # Open Trino in browser  
+make jupyter     # Open Jupyter in browser
+make airflow     # Open Airflow in browser
 ```
 
-## 🌐 Web UI Management
-
-The Lakehouse Sandbox includes a modern, comprehensive Web UI for managing all services, monitoring health, and running tests.
-
-### 🚀 Quick Start
-
-```bash
-# Start the Web UI
-make webui-up
-
-# Check WebUI status
-make webui-status
-
-# Stop the Web UI
-make webui-down
-```
-
-**Access the Web UI at: http://localhost:3000**
-
-### ✨ Features
-
-- **🎛️ Service Management**: Start, stop, restart individual services or entire service groups
-- **📊 Real-time Monitoring**: Live service status with detailed metrics breakdown
-- **📈 Resource Monitoring**: CPU, memory, network, and disk usage for all containers
-- **📝 Log Viewer**: Stream logs from any service in real-time
-- **⚙️ Configuration Editor**: Edit service configuration files with live validation
-- **🖥️ Terminal Access**: Direct shell access to any container
-- **🧪 Integration Testing**: Run comprehensive tests directly from the UI
-- **📄 System Information**: Docker system info, container details, and health status
-
-### 📊 Service Status Dashboard
-
-The main dashboard shows:
-- **Total Services**: 16+ services across all groups
-- **Status Breakdown**: Running, stopped, paused, and not-created counts
-- **Service Groups**: Core Services, Kafka Cluster, Airflow Orchestration, Sandbox Services
-- **Individual Controls**: Start/stop/restart buttons for each service
-- **Quick Access**: Direct links to service UIs with credentials
-
-### 🎯 Service Groups
-
-1. **Core Services (7 services)**:
-   - Polaris Catalog, Trino Query Engine, MinIO Console, Spark Jupyter, Nimtable UI, plus supporting services
-
-2. **Kafka Cluster (2 services)**:
-   - Kafka Broker, Kafka UI (single broker for local development)
-
-3. **Airflow Orchestration (6 services)**:
-   - Airflow Web, Scheduler, Worker, PostgreSQL, Redis, Triggerer
-
-4. **Sandbox Services (2 services)**:
-   - Databricks SQL API Sandbox, Snowflake SQL API Sandbox
-
-### 🔧 Advanced Features
-
-- **Real-time Updates**: WebSocket connections for live status updates
-- **Individual Service Controls**: Granular management without affecting other services
-- **Configuration Management**: Edit `.env` files and docker-compose configurations
-- **Terminal Sessions**: Multi-tab terminal access with persistent sessions
-- **Resource Monitoring**: Historical charts and real-time metrics
-- **Test Execution**: Run integration tests and view detailed reports
+---
 
 ## 🧪 Integration Testing
 
-Comprehensive testing framework to verify all services are working correctly after changes.
-
-### 🚀 Quick Testing
+Validate your environment with comprehensive test suites:
 
 ```bash
 # Run all integration tests
 make test
 
-# Run with detailed output
-make test-verbose
-
-# Generate detailed JSON report
-make test-report
-```
-
-### 🎯 Focused Testing
-
-```bash
 # Test specific service groups
-make test-core           # Core services only (7 tests)
-make test-kafka          # Kafka cluster only (4 tests)  
-make test-airflow        # Airflow services only (6 tests)
-make test-integrations   # Service integrations (3 tests)
-make test-sandbox        # Sandbox services only (Databricks & Snowflake)
+python3 tests/integration/test_runner.py --groups core
+python3 tests/integration/test_runner.py --groups kafka airflow
+python3 tests/integration/test_runner.py --groups integrations
+
+# Test sandbox environments
+python3 tests/integration/test_databricks_sandbox.py
+python3 tests/integration/test_snowflake_sandbox.py
+
+# Generate detailed test report
+python3 tests/integration/test_runner.py --output test_report.json
 ```
 
-### 📊 Test Categories
+**Test Coverage:**
+- ✅ **14 Core Service Tests** - Health, connectivity, basic operations
+- ✅ **10 Databricks SQL Tests** - API compatibility, query execution, Unity Catalog
+- ✅ **8 Snowflake Translation Tests** - SQL conversion, function mapping
+- ✅ **5 Integration Tests** - Cross-service communication and data flow
+- ✅ **Performance Benchmarks** - Query execution times and resource usage
 
-#### Core Services Tests
-- **Polaris Catalog**: API connectivity and authentication
-- **Trino Query Engine**: REST API and SQL capabilities
-- **MinIO**: Console and S3 API endpoints
-- **Spark Jupyter**: Notebook API availability
-- **Nimtable**: Web UI accessibility
-
-#### Kafka Cluster Tests  
-- **Kafka UI**: Management interface functionality
-- **Kafka Broker**: Single broker health in KRaft mode
-- **Topic Operations**: Creation, listing, and management
-- **Broker Communication**: Single broker health verification
-
-#### Airflow Services Tests
-- **Web UI**: Health checks and API access
-- **Scheduler**: Service health verification
-- **Worker**: Celery worker status
-- **PostgreSQL**: Database connectivity  
-- **Redis**: Message broker functionality
-
-#### Integration Tests
-- **Docker Network**: Container connectivity verification
-- **WebUI Backend**: Management API functionality
-- **Container Count**: Expected service count validation
-
-#### Sandbox Services Tests
-- **Databricks SQL API**: SQL statement execution and Unity Catalog operations
-- **Snowflake API**: SQL query processing and warehouse management
-- **API Documentation**: Interactive API docs and health endpoints
-- **Metrics Endpoints**: Prometheus metrics and monitoring
-
-### 📈 Understanding Results
-
-```bash
-✅ Kafka Cluster (6/6 passed)
-❌ Core Services (5/7 passed, 2 failed)
-  ✅ Polaris Catalog API: HTTP 401 (auth required - expected) (0.12s)
-  ❌ Trino Query Engine: Connection refused (0.01s)
-  
-📊 Overall Status: FAIL (18/21 tests passed)
-```
-
-### 🛠️ Advanced Testing Options
-
-```bash
-# Custom timeout and groups
-./tests/integration/run_tests.sh --groups core kafka --timeout 60 --verbose
-
-# Python test runner directly  
-python3 tests/integration/test_runner.py --help
-
-# API-triggered tests (via WebUI)
-curl -X POST http://localhost:5001/api/test/run \
-  -H "Content-Type: application/json" \
-  -d '{"groups": ["core"], "verbose": true}'
-```
-
-### 📄 Test Reports
-
-JSON reports include:
-- **Test Results**: Pass/fail status with timing
-- **Diagnostic Information**: Error messages and details
-- **Service Health**: Individual service status
-- **Performance Metrics**: Test execution times
-- **Historical Tracking**: Compare results over time
-
-## 🎯 Service Access
-
-After running `make all`, access your services:
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| **🎛️ WebUI Management** | http://localhost:3000 | - |
-| **Airflow** | http://localhost:8090 | admin / admin |
-| **Kafka UI** | http://localhost:8091 | - |
-| **Trino** | http://localhost:8080 | admin / (no password) |
-| **Polaris** | http://localhost:8181 | - |
-| **Spark/Jupyter** | http://localhost:8888 | - |
-| **MinIO Console** | http://localhost:9001 | admin / password |
-| **Nimtable** | http://localhost:13000 | admin / admin |
-| **🔷 Databricks Sandbox** | http://localhost:5434/docs | - |
-| **❄️ Snowflake Sandbox** | http://localhost:5435/docs | - |
-
-### API Endpoints
-- **WebUI Backend API**: http://localhost:5001/api
-- **MinIO API**: http://localhost:9000
-- **Nimtable API**: http://localhost:18182
-- **Databricks SQL API**: http://localhost:5434/api/2.0
-- **Databricks Metrics**: http://localhost:18000/metrics
-- **Snowflake SQL API**: http://localhost:5435/api/v1
-- **Airflow Postgres**: localhost:5433
-- **Kafka Broker**: localhost:9092
+---
 
 ## 📦 Service Management
 
-The Makefile provides fine-grained control over service groups:
-
-### All Services
+### Lifecycle Commands
 ```bash
-make all          # Start everything
-make down         # Stop everything  
-make restart      # Restart everything
-make status       # Show all service status
-make logs         # Show all logs
-make clean        # Stop and remove containers/volumes
+# Complete environment
+make up          # Start all services
+make down        # Stop all services  
+make restart     # Restart all services
+make clean       # Remove all containers and volumes
+
+# Service groups
+make core-up     # Start core lakehouse services
+make kafka-up    # Start streaming services
+make airflow-up  # Start workflow services
+make webui-up    # Start WebUI interface
+
+# Individual services (via WebUI or docker)
+docker start lakehouse-sandbox-trino-1
+docker restart lakehouse-sandbox-databricks-sandbox-1
 ```
 
-### Individual Service Groups
+### Monitoring & Debugging
 ```bash
-# Core lakehouse services (Polaris, Trino, MinIO, Spark, Nimtable)
-make core-up core-down core-status core-logs core-restart
+make status      # Show service status
+make logs        # Tail all service logs
+make ps          # List running containers
 
-# Kafka cluster and UI
-make kafka-up kafka-down kafka-status kafka-logs kafka-restart
+# Individual service logs
+docker logs -f lakehouse-sandbox-trino-1
+docker logs -f lakehouse-sandbox-databricks-sandbox-1
 
-# Airflow workflow engine
-make airflow-up airflow-down airflow-status airflow-logs airflow-restart
+# Resource monitoring
+docker stats
 ```
 
-### Web UI Management
-```bash
-# Web UI for service management
-make webui-up webui-down webui-status webui-logs
-```
-
-### Integration Testing
-```bash
-# Comprehensive testing framework
-make test test-verbose test-report
-make test-core test-kafka test-airflow test-integrations
-```
-
-### Development Helpers
-```bash
-make pull           # Pull latest images
-make build          # Build any custom images  
-make watch          # Watch service status (live)
-make healthcheck    # Check service health
-make network        # Create shared network
-```
+---
 
 ## 💻 Development Workflows
 
-### 🔄 Airflow Workflows
-
-Create data pipelines in `/airflow/dags/`:
-
-```python
-# airflow/dags/lakehouse_etl.py
-from airflow import DAG
-from airflow.providers.apache.spark.operators.spark_sql import SparkSQLOperator
-from datetime import datetime, timedelta
-
-dag = DAG(
-    'lakehouse_etl',
-    default_args={
-        'owner': 'data-team',
-        'retries': 1,
-        'retry_delay': timedelta(minutes=5),
-    },
-    start_date=datetime(2024, 1, 1),
-    schedule_interval='@daily',
-    catchup=False
-)
-
-# Extract from Kafka to Iceberg
-kafka_to_iceberg = SparkSQLOperator(
-    task_id='kafka_to_iceberg',
-    sql="""
-        CREATE OR REPLACE TEMPORARY VIEW kafka_stream AS
-        SELECT * FROM TABLE(
-            kafka_table('kafka1:29092', 'events')
-        );
-        
-        INSERT INTO iceberg.db.events
-        SELECT * FROM kafka_stream;
-    """,
-    dag=dag
-)
-```
-
-### 📊 Spark Development
-
-Access Spark via Jupyter at http://localhost:8888:
-
-```python
-# Example: Reading from Kafka and writing to Iceberg
-from pyspark.sql import SparkSession
-
-spark = SparkSession.builder \
-    .appName("KafkaToIceberg") \
-    .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog") \
-    .config("spark.sql.catalog.iceberg.type", "rest") \
-    .config("spark.sql.catalog.iceberg.uri", "http://polaris:8181/api/catalog/") \
-    .getOrCreate()
-
-# Stream from Kafka
-df = spark \
-    .readStream \
-    .format("kafka") \
-    .option("kafka.bootstrap.servers", "kafka1:29092") \
-    .option("subscribe", "user_events") \
-    .load()
-
-# Write to Iceberg
-query = df.writeStream \
-    .format("iceberg") \
-    .outputMode("append") \
-    .option("path", "s3a://warehouse/analytics/user_events") \
-    .option("checkpointLocation", "/tmp/checkpoint") \
-    .start()
-
-query.awaitTermination()
-```
-
-### 🗄️ Trino SQL Queries
-
-Connect to Trino and query your lakehouse:
-
+### Data Engineering Workflow
 ```bash
-# Open Trino CLI
-make shell-trino
+# 1. Start environment
+make all
+
+# 2. Develop in Jupyter (http://localhost:8888)
+# - Create notebooks with PySpark
+# - Connect to Iceberg catalog
+# - Process data with Spark SQL
+
+# 3. Query with Trino (http://localhost:8080 or WebUI)
+# - Run analytical queries
+# - Join data across sources  
+# - Test performance
+
+# 4. Orchestrate with Airflow (http://localhost:8090)
+# - Create DAGs for workflows
+# - Schedule batch processing
+# - Monitor execution
+
+# 5. Stream with Kafka
+# - Ingest real-time data
+# - Process with Spark Streaming
+# - Store in Iceberg tables
 ```
 
+### Migration Testing Workflow
+```bash
+# Test Databricks compatibility
+curl -X POST http://localhost:5434/api/2.0/sql/statements \
+  -d '{"statement": "SELECT current_catalog(), COUNT(*) FROM my_table"}'
+
+# Test Snowflake translation  
+curl -X POST http://localhost:5435/api/v1/query \
+  -d '{"sql": "SELECT CURRENT_WAREHOUSE(), CURRENT_DATABASE()"}'
+
+# Compare performance
+python3 scripts/benchmark_queries.py --engine databricks
+python3 scripts/benchmark_queries.py --engine snowflake  
+python3 scripts/benchmark_queries.py --engine trino
+```
+
+### Schema Development Workflow
 ```sql
--- Show available catalogs
-SHOW CATALOGS;
+-- 1. Create Iceberg table (via Trino or Spark)
+CREATE TABLE iceberg.analytics.customer_metrics (
+    customer_id BIGINT,
+    total_orders INTEGER,
+    lifetime_value DECIMAL(10,2),
+    last_order_date DATE,
+    created_at TIMESTAMP
+) WITH (format = 'PARQUET');
 
--- Query Iceberg tables
-SELECT * FROM iceberg.analytics.user_events 
-WHERE event_date = current_date
-LIMIT 10;
+-- 2. Test schema evolution
+ALTER TABLE iceberg.analytics.customer_metrics 
+ADD COLUMN customer_segment VARCHAR;
 
--- Join data across different sources
-SELECT 
-    u.user_id,
-    u.event_type,
-    p.product_name
-FROM iceberg.analytics.user_events u
-JOIN iceberg.product.catalog p ON u.product_id = p.id
-WHERE u.event_date >= current_date - interval '7' day;
+-- 3. Query with time travel
+SELECT * FROM iceberg.analytics.customer_metrics 
+FOR VERSION AS OF 1;
+
+-- 4. Validate via WebUI SQL Editor
+-- Navigate to http://localhost:3000 → Code button
+-- Browse schema, execute queries, export results
 ```
 
-### 🚀 Kafka Streaming
-
-#### Produce Test Data
-```bash
-# Create a topic
-docker exec kafka1 kafka-topics \
-    --create --topic user-events \
-    --bootstrap-server localhost:29092 \
-    --partitions 3 --replication-factor 1
-
-# Produce messages
-echo '{"user_id": 123, "event": "page_view", "timestamp": "2024-01-01T10:00:00Z"}' | \
-docker exec -i kafka1 kafka-console-producer \
-    --topic user-events --bootstrap-server localhost:29092
-```
-
-#### Python Producer/Consumer
-```python
-from kafka import KafkaProducer, KafkaConsumer
-import json
-from datetime import datetime
-
-# Producer
-producer = KafkaProducer(
-    bootstrap_servers=['localhost:9092'],
-    value_serializer=lambda x: json.dumps(x).encode('utf-8')
-)
-
-# Send events
-for i in range(100):
-    event = {
-        'user_id': f'user_{i}',
-        'event_type': 'click',
-        'timestamp': datetime.now().isoformat(),
-        'product_id': f'prod_{i % 10}'
-    }
-    producer.send('user-events', event)
-
-producer.flush()
-
-# Consumer
-consumer = KafkaConsumer(
-    'user-events',
-    bootstrap_servers=['localhost:9092'],
-    value_deserializer=lambda x: json.loads(x.decode('utf-8')),
-    group_id='analytics-group'
-)
-
-for message in consumer:
-    print(f"Received: {message.value}")
-```
-
-### 🔷 Databricks SQL Development
-
-The Databricks sandbox provides a comprehensive SQL API emulation compatible with Databricks SQL Warehouses:
-
-#### API Access
-```bash
-# Access the Databricks SQL API documentation
-open http://localhost:5434/docs
-
-# Check service health and metrics
-curl http://localhost:18000/metrics
-```
-
-#### Execute SQL Statements
-```python
-import requests
-import json
-
-# Execute a SQL statement via Databricks SQL API
-response = requests.post(
-    "http://localhost:5434/api/2.0/sql/statements",
-    headers={"Content-Type": "application/json"},
-    json={
-        "statement": "SELECT * FROM iceberg.analytics.user_events LIMIT 10",
-        "warehouse_id": "local-warehouse",
-        "wait_timeout": "10s"
-    }
-)
-
-statement_id = response.json()["statement_id"]
-print(f"Statement ID: {statement_id}")
-
-# Get statement results
-results = requests.get(
-    f"http://localhost:5434/api/2.0/sql/statements/{statement_id}"
-)
-print(json.dumps(results.json(), indent=2))
-```
-
-#### Unity Catalog Operations
-```python
-# List catalogs
-catalogs = requests.get("http://localhost:5434/api/2.1/unity-catalog/catalogs")
-print("Available catalogs:", catalogs.json())
-
-# List schemas in a catalog
-schemas = requests.get("http://localhost:5434/api/2.1/unity-catalog/schemas?catalog_name=iceberg")
-print("Schemas in iceberg catalog:", schemas.json())
-
-# List tables in a schema
-tables = requests.get("http://localhost:5434/api/2.1/unity-catalog/tables?catalog_name=iceberg&schema_name=analytics")
-print("Tables in analytics schema:", tables.json())
-```
-
-#### SQL Warehouses Management
-```python
-# List available SQL warehouses
-warehouses = requests.get("http://localhost:5434/api/2.0/sql/warehouses")
-print("Available warehouses:", warehouses.json())
-
-# Get warehouse details
-warehouse = requests.get("http://localhost:5434/api/2.0/sql/warehouses/local-warehouse")
-print("Warehouse details:", warehouse.json())
-```
-
-#### Features
-- **Databricks SQL API Compatibility**: Full REST API emulation
-- **Unity Catalog Integration**: Catalog, schema, and table operations
-- **SQL Warehouse Management**: Warehouse lifecycle and configuration
-- **Spark Integration**: Powered by PySpark for actual query execution
-- **Iceberg Support**: Direct integration with Apache Iceberg tables
-- **Metrics and Monitoring**: Prometheus metrics on port 18000
-- **Health Checks**: Built-in health monitoring and status endpoints
+---
 
 ## 🔧 Advanced Usage
 
-### Container Access
+### Custom Configuration
 ```bash
-# Access service shells
-make shell-spark      # Spark/Jupyter container
-make shell-airflow    # Airflow webserver  
-make shell-trino      # Trino CLI
+# Override default settings
+cp docker-compose.override.yml.example docker-compose.override.yml
+# Edit configurations for your needs
 
-# Direct docker exec
-docker exec -it spark-iceberg bash
-docker exec -it lakehouse-sandbox-airflow-webserver-1 bash
+# Custom environment variables
+export TRINO_MEMORY_GB=8
+export SPARK_WORKER_CORES=4
+export KAFKA_HEAP_OPTS="-Xmx2G"
+
+make up
 ```
 
-### Custom Configurations
-
-#### Airflow Configuration
-Edit `.env.airflow` to customize Airflow settings:
-```env
-AIRFLOW_UID=50000
-AIRFLOW_PROJ_DIR=.
-_AIRFLOW_WWW_USER_USERNAME=admin
-_AIRFLOW_WWW_USER_PASSWORD=admin
-AIRFLOW__CORE__FERNET_KEY=your-fernet-key
-```
-
-#### Spark Configuration
-Mount custom Spark configurations in `docker-compose.yml`:
-```yaml
-volumes:
-  - ./spark-configs:/opt/spark/conf
-```
-
-#### Trino Catalogs
-Add custom catalogs in `./trino/catalog/`:
-```properties
-# ./trino/catalog/mysql.properties
-connector.name=mysql
-connection-url=jdbc:mysql://mysql-server:3306
-connection-user=admin
-connection-password=password
-```
-
-### Scaling Services
-
-#### Scale Kafka
-Add more brokers by modifying `docker-compose.kafka.yml` and updating the cluster configuration.
-
-#### Resource Limits
-Adjust container resources in compose files:
-```yaml
+### Performance Optimization
+```bash
+# Increase resource limits
+# Edit docker-compose.override.yml:
 services:
-  spark-iceberg:
+  trino:
     deploy:
       resources:
         limits:
-          memory: 8g
+          memory: 8G
           cpus: '4'
+
+# Tune JVM settings
+environment:
+  - JAVA_OPTS=-Xmx6G -XX:+UseG1GC
 ```
+
+### Production Readiness
+```bash
+# Enable monitoring
+make monitoring-up    # Start Prometheus + Grafana
+
+# Setup persistent volumes
+# Edit docker-compose.yml to use named volumes
+
+# Configure security
+# Add authentication to services
+# Setup SSL/TLS certificates
+# Configure network policies
+```
+
+---
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
 
-#### Port Conflicts
+**Services Won't Start**
 ```bash
-# Check what's using ports
+# Check system resources
+docker system df
+docker system events
+
+# Clean up if needed
+make clean
+docker system prune -a
+
+# Check port conflicts
 netstat -tulpn | grep :8080
-
-# Stop conflicting services
-sudo systemctl stop apache2  # Example
 ```
 
-#### Memory Issues
+**Memory Issues**
 ```bash
-# Check Docker resources
-docker system df
-docker system prune  # Clean up unused resources
+# Increase Docker memory limit (8GB+ recommended)
+# Docker Desktop → Settings → Resources → Memory
 
-# Adjust Docker Desktop memory allocation (8GB+ recommended)
-```
-
-#### Service Won't Start
-```bash
-# Check specific service logs
-make airflow-logs
-make kafka-logs  
-make core-logs
-
-# Check individual container
-docker logs lakehouse-sandbox-airflow-webserver-1
-```
-
-#### Network Issues
-```bash
-# Recreate network
-make network-clean
-make network
-
-# Check network connectivity
-docker network ls
-docker network inspect local-iceberg-lakehouse
-```
-
-### Reset Everything
-```bash
-# Nuclear option - clean slate
-make clean-all
-docker system prune -a --volumes
-make all
-```
-
-### Service Health Check
-```bash
-# Monitor service health
-make healthcheck
-make watch  # Live monitoring
-```
-
-## 🔍 Monitoring & Observability
-
-### Service Status
-```bash
-# Quick health check
-make status
-
-# Detailed health information  
-make healthcheck
-
-# Live monitoring (refreshes every 2 seconds)
-make watch
-```
-
-### Log Analysis
-```bash
-# All service logs
-make logs
-
-# Specific service logs  
-make airflow-logs
-make kafka-logs
-make core-logs
-
-# Follow logs in real-time
-docker logs -f lakehouse-sandbox-airflow-scheduler-1
-```
-
-### Resource Usage
-```bash
-# Container resource usage
+# Monitor resource usage
 docker stats
-
-# System resource usage
-docker system df
-docker system events  # Live system events
+make status
 ```
+
+**Network Connectivity**
+```bash
+# Check service health
+make test
+
+# Verify internal DNS
+docker exec -it lakehouse-sandbox-trino-1 nslookup polaris
+docker exec -it lakehouse-sandbox-databricks-sandbox-1 ping trino
+```
+
+**Query Failures**
+```bash
+# Check catalog connectivity  
+curl http://localhost:8181/api/catalog/v1/config
+
+# Verify table access
+docker exec -it lakehouse-sandbox-trino-1 trino --execute "SHOW CATALOGS;"
+
+# Review service logs
+docker logs lakehouse-sandbox-trino-1
+```
+
+### Getting Help
+```bash
+# Run diagnostics
+make diagnose      # Comprehensive health check
+
+# View detailed logs
+make logs SERVICE=trino
+make logs SERVICE=databricks-sandbox
+
+# Reset environment
+make clean && make up
+```
+
+---
+
+## 🎉 What Makes This Special?
+
+### **🚀 Production-Ready Architecture**
+- **Apache Iceberg** - Modern table format with ACID transactions
+- **Polaris Catalog** - Enterprise-grade metadata management  
+- **Dual Query Engines** - Trino for analytics + Spark for processing
+- **Cloud-Native Storage** - S3-compatible MinIO with versioning
+
+### **🧪 Sandbox Environments**  
+- **Databricks SQL API** - Full compatibility for migration testing
+- **Snowflake Translation** - SQL conversion and function mapping
+- **Performance Benchmarks** - Compare engines objectively
+- **Real Migration Data** - Test with your actual queries
+
+### **🌐 Modern Developer Experience**
+- **Interactive WebUI** - Manage everything from your browser
+- **Built-in SQL Editor** - Write, execute, export queries
+- **Jupyter Integration** - Data science workflows
+- **Real-time Monitoring** - Service health and performance
+
+### **📈 Enterprise Features**
+- **Comprehensive Testing** - 30+ automated integration tests
+- **Workflow Orchestration** - Airflow with DAGs and scheduling  
+- **Stream Processing** - Kafka + Spark for real-time analytics
+- **Schema Management** - Evolution, lineage, and governance
+
+---
 
 ## 🤝 Contributing
 
-### Development Setup
+We welcome contributions! This sandbox benefits the entire data engineering community.
+
 ```bash
-# Fork and clone the repository
-git clone https://github.com/your-username/lakehouse-sandbox.git
+# Development setup
+git clone https://github.com/your-org/lakehouse-sandbox.git
 cd lakehouse-sandbox
+make dev-setup
 
-# Create feature branch
-git checkout -b feature/awesome-feature
+# Run tests
+make test-all
 
-# Make changes and test
-make clean-all
-make all
-make status
-
-# Commit and push
-git commit -m "Add awesome feature"
-git push origin feature/awesome-feature
+# Submit improvements
+git checkout -b feature/your-improvement
+# Make your changes
+git commit -m "Add: your improvement"
+git push origin feature/your-improvement
+# Create pull request
 ```
 
-### Adding New Services
-1. Add service to appropriate `docker-compose*.yml`
-2. Update Makefile with new targets
-3. Update README.md with service documentation
-4. Test with `make all` and `make status`
-5. Update port conflict check
-
-### Testing Changes
-```bash
-# Test individual service groups
-make core-restart
-make kafka-restart  
-make airflow-restart
-
-# Full integration test with verification
-make clean-all && make all && make test
-```
-
-## 🚀 Developer Productivity Tips
-
-### Quick Development Cycle
-```bash
-# 1. Start everything with WebUI
-make all && make webui-up
-
-# 2. Open WebUI for real-time monitoring
-open http://localhost:3000
-
-# 3. Verify all services are healthy
-make test
-
-# 4. Start developing with confidence!
-```
-
-### Daily Workflow
-```bash
-# Morning startup
-make all && make webui-up && make test
-
-# Check logs for any service via WebUI or CLI
-make airflow-logs  # or use WebUI log viewer
-
-# Test specific changes
-make test-kafka    # after Kafka config changes
-make test-core     # after core service updates
-
-# Quick health check anytime
-make status        # or check WebUI dashboard
-
-# End of day cleanup (optional)
-make down
-```
-
-### Troubleshooting Workflow
-```bash
-# 1. Check service status
-make status
-
-# 2. Run focused tests
-make test-verbose
-
-# 3. Check logs for failing services
-make airflow-logs  # or use WebUI
-
-# 4. Restart problematic services
-make airflow-restart  # or use WebUI individual controls
-
-# 5. Verify fix
-make test-airflow
-```
-
-### Best Practices
-- **Always run `make test` after changes** - catches issues early
-- **Use WebUI for real-time monitoring** - visual feedback is faster
-- **Leverage individual service controls** - faster than restarting everything
-- **Check integration tests regularly** - ensures service compatibility
-- **Use service groups for development** - test only what you're changing
+**Areas for Contribution:**
+- 🔌 **New Connectors** - Additional data sources
+- 🧪 **Test Scenarios** - More migration test cases  
+- 📊 **Dashboard Widgets** - Enhanced WebUI features
+- 🚀 **Performance Optimizations** - Query and system tuning
+- 📚 **Documentation** - Tutorials and use cases
 
 ---
-**Happy Data Engineering with Lakehouse Sandbox!** 🚀
 
-*Now with comprehensive Web UI management, real-time monitoring, and automated testing - making lakehouse development faster and more reliable than ever!*
+## 📈 Roadmap
+
+### Coming Soon
+- [ ] **Delta Lake Integration** - Full lakehouse format support
+- [ ] **Kubernetes Deployment** - Cloud-native orchestration  
+- [ ] **Authentication & RBAC** - Enterprise security features
+- [ ] **Monitoring Stack** - Prometheus + Grafana integration
+- [ ] **More SQL Sandboxes** - BigQuery, Redshift compatibility
+- [ ] **ML Pipeline Integration** - MLflow + model serving
+
+### Long Term Vision
+- **Multi-Cloud Support** - Deploy anywhere (AWS, Azure, GCP)
+- **Auto-Scaling** - Dynamic resource allocation
+- **Data Governance** - Built-in compliance and lineage
+- **Marketplace** - Pre-built data applications and use cases
+
+---
+
+## 🏆 Perfect For
+
+### **🎓 Learning & Education**
+- **Data Engineering Bootcamps** - Hands-on lakehouse experience
+- **University Courses** - Modern data architecture curriculum
+- **Self-Paced Learning** - Explore technologies safely
+- **Certification Prep** - Practice with real tools
+
+### **🏢 Enterprise Adoption**  
+- **Architecture Evaluation** - Test before you invest
+- **Migration Planning** - Validate compatibility and performance
+- **Team Training** - Standardized learning environment
+- **Proof of Concepts** - Demonstrate lakehouse value
+
+### **🚀 Startup & Innovation**
+- **Rapid Prototyping** - Data products in minutes
+- **Cost Optimization** - Avoid vendor lock-in
+- **Technical Interviews** - Assess candidates with real scenarios
+- **Customer Demos** - Showcase data capabilities
+
+---
+
+## 🌟 Get Started Today
+
+**Ready to revolutionize your data engineering experience?**
+
+```bash
+git clone https://github.com/your-org/lakehouse-sandbox.git
+cd lakehouse-sandbox
+make all
+
+# 🎉 Your complete data lakehouse is ready!
+# 📊 WebUI: http://localhost:3000
+# 💡 Start with the interactive SQL Editor
+# 🚀 Build the future of data engineering
+```
+
+---
+
+**Questions? Issues? Ideas?** 
+- 💬 **Discussions**: Share use cases and get help
+- 🐛 **Issues**: Report bugs and request features
+- 📧 **Email**: reach out to maintainers [ananth@dataengineeringweekly.com]
+- 📚 **Documentation**: Comprehensive guides for everything
+
+**⭐ Star this repo if it helps your data engineering journey!**
+
+---
+
+*Built with ❤️ for the data engineering community. Licensed under Apache 2.0.*

@@ -7,6 +7,9 @@ from contextlib import asynccontextmanager
 from .api.routes import router
 from .core.monitoring import setup_metrics
 from .core.spark_manager import SparkManager
+from .core.jobs_manager import JobsManager
+from .core.clusters_manager import ClustersManager
+from .core.dbfs_manager import DBFSManager
 from config.settings import settings
 
 
@@ -36,6 +39,19 @@ async def lifespan(app: FastAPI):
     spark_manager = SparkManager()
     await spark_manager.initialize()
     app.state.spark_manager = spark_manager
+    
+    # Initialize Jobs manager
+    jobs_manager = JobsManager(spark_manager)
+    app.state.jobs_manager = jobs_manager
+    
+    # Initialize Clusters manager
+    clusters_manager = ClustersManager()
+    app.state.clusters_manager = clusters_manager
+    
+    # Initialize DBFS manager
+    dbfs_manager = DBFSManager()
+    await dbfs_manager.initialize()
+    app.state.dbfs_manager = dbfs_manager
     
     # Metrics already setup before app startup
     if settings.enable_metrics:

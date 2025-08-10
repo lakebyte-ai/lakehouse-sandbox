@@ -9,7 +9,8 @@ import LogViewer from './components/LogViewer';
 import ConfigurationEditor from './components/ConfigurationEditor';
 import Terminal from './components/Terminal';
 import ResourceMonitor from './components/ResourceMonitor';
-import { Database, Wifi, WifiOff, AlertCircle, Settings, Terminal as TerminalIcon, Activity, X } from 'lucide-react';
+import DatabricksSQLEditor from './components/DatabricksSQLEditor';
+import { Database, Wifi, WifiOff, AlertCircle, Settings, Terminal as TerminalIcon, Activity, X, Code } from 'lucide-react';
 import { clsx } from 'clsx';
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
   const [showSystemInfo, setShowSystemInfo] = useState(false);
   const [showMetrics, setShowMetrics] = useState(false);
   const [selectedMetricsService, setSelectedMetricsService] = useState<string | null>(null);
+  const [showSQLEditor, setShowSQLEditor] = useState(false);
 
   const handleViewLogs = (serviceName: string) => {
     setSelectedService(serviceName);
@@ -154,6 +156,14 @@ function App() {
                 >
                   <Settings className="w-5 h-5" />
                 </button>
+                
+                <button
+                  onClick={() => setShowSQLEditor(true)}
+                  className="text-gray-500 hover:text-gray-700 p-2 rounded-md hover:bg-gray-100 transition-colors"
+                  title="Databricks SQL Editor"
+                >
+                  <Code className="w-5 h-5" />
+                </button>
               </div>
 
               <div className="h-4 w-px bg-gray-300" />
@@ -257,6 +267,27 @@ function App() {
         isOpen={showResourceMonitor}
         onClose={() => setShowResourceMonitor(false)}
       />
+
+      {/* SQL Editor modal */}
+      {showSQLEditor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Databricks SQL Editor</h3>
+              <button
+                onClick={() => setShowSQLEditor(false)}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <DatabricksSQLEditor />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* System information modal */}
       {showSystemInfo && systemInfo && (
