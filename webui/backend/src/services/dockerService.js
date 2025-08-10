@@ -8,7 +8,7 @@ class DockerService {
     // Define service groups based on the lakehouse-sandbox structure
     this.serviceGroups = {
       core: [
-        'polaris', 'trino', 'minio', 'spark-iceberg', 'nimtable', 'snowflake-sandbox'
+        'polaris', 'trino', 'minio', 'spark-iceberg', 'nimtable'
       ],
       kafka: [
         'kafka1', 'kafka2', 'kafka3', 'kafka-ui'
@@ -19,6 +19,9 @@ class DockerService {
         'airflow-worker',
         'airflow-postgres',
         'airflow-redis'
+      ],
+      sandbox: [
+        'snowflake-sandbox', 'databricks-sandbox'
       ]
     };
 
@@ -30,7 +33,6 @@ class DockerService {
       'minio': { port: 9001, name: 'MinIO Console', group: 'core', url: 'http://localhost:9001', credentials: 'admin/password' },
       'spark-iceberg': { port: 8888, name: 'Spark Jupyter', group: 'core', url: 'http://localhost:8888' },
       'nimtable': { port: 13000, name: 'Nimtable UI', group: 'core', url: 'http://localhost:13000', credentials: 'admin/admin' },
-      'snowflake-sandbox': { port: 5432, name: 'Snowflake Sandbox', group: 'core', url: 'http://localhost:5432', apiUrl: 'http://localhost:5432/api/v1', docsUrl: 'http://localhost:5432/docs' },
       
       // Kafka services (KRaft mode - no Zookeeper needed)
       'kafka1': { port: 9092, name: 'Kafka Broker 1', group: 'kafka' },
@@ -43,7 +45,11 @@ class DockerService {
       'airflow-scheduler': { name: 'Airflow Scheduler', group: 'airflow' },
       'airflow-worker': { name: 'Airflow Worker', group: 'airflow' },
       'airflow-postgres': { port: 5433, name: 'Airflow PostgreSQL', group: 'airflow' },
-      'airflow-redis': { name: 'Airflow Redis', group: 'airflow' }
+      'airflow-redis': { name: 'Airflow Redis', group: 'airflow' },
+      
+      // Sandbox services (Experimental)
+      'snowflake-sandbox': { port: 5435, name: 'Snowflake Sandbox (Experimental)', group: 'sandbox', url: 'http://localhost:5435', apiUrl: 'http://localhost:5435/api/v1', docsUrl: 'http://localhost:5435/docs' },
+      'databricks-sandbox': { port: 5434, name: 'Databricks Sandbox (Experimental)', group: 'sandbox', url: 'http://localhost:5434', apiUrl: 'http://localhost:5434/api/2.0', docsUrl: 'http://localhost:5434/docs' }
     };
   }
 
@@ -88,7 +94,8 @@ class DockerService {
         groups: {
           core: { services: [], running: 0, stopped: 0, paused: 0, notCreated: 0, total: 0 },
           kafka: { services: [], running: 0, stopped: 0, paused: 0, notCreated: 0, total: 0 },
-          airflow: { services: [], running: 0, stopped: 0, paused: 0, notCreated: 0, total: 0 }
+          airflow: { services: [], running: 0, stopped: 0, paused: 0, notCreated: 0, total: 0 },
+          sandbox: { services: [], running: 0, stopped: 0, paused: 0, notCreated: 0, total: 0 }
         },
         totalRunning: 0,
         totalStopped: 0,

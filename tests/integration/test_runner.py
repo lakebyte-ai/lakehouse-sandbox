@@ -87,7 +87,8 @@ class IntegrationTestRunner:
                 'minio_api': {'port': 9000, 'path': '/minio/health/live', 'auth_required': False},
                 'spark': {'port': 8888, 'path': '/api', 'auth_required': False},
                 'nimtable': {'port': 13000, 'path': '/health', 'auth_required': False, 'allow_redirect': True},
-                'snowflake_sandbox': {'port': 5432, 'path': '/health', 'auth_required': False}
+                'snowflake_sandbox': {'port': 5435, 'path': '/health', 'auth_required': False},
+                'databricks_sandbox': {'port': 5434, 'path': '/health', 'auth_required': False}
             },
             'kafka': {
                 'kafka_ui': {'port': 8091, 'path': '/api/clusters', 'auth_required': False}
@@ -106,6 +107,7 @@ class IntegrationTestRunner:
             'spark': 'spark-iceberg',
             'nimtable': 'lakehouse-sandbox-nimtable-database-1',
             'snowflake_sandbox': 'lakehouse-sandbox-snowflake-sandbox-1',
+            'databricks_sandbox': 'lakehouse-sandbox-databricks-sandbox-1',
             'kafka1': 'kafka1',
             'kafka2': 'kafka2',
             'kafka3': 'kafka3',
@@ -280,7 +282,7 @@ class IntegrationTestRunner:
             futures.append(executor.submit(
                 self.http_test,
                 "Snowflake Sandbox Health",
-                "http://localhost:5432/health"
+                "http://localhost:5435/health"
             ))
             
             for future in concurrent.futures.as_completed(futures):
@@ -297,13 +299,13 @@ class IntegrationTestRunner:
         # Snowflake Sandbox API tests
         snowflake_api_test = self.http_test(
             "Snowflake Sandbox API",
-            "http://localhost:5432/api/v1/status"
+            "http://localhost:5435/api/v1/status"
         )
         tests.append(snowflake_api_test)
         
         snowflake_docs_test = self.http_test(
             "Snowflake Sandbox Docs",
-            "http://localhost:5432/docs"
+            "http://localhost:5435/docs"
         )
         tests.append(snowflake_docs_test)
         
@@ -312,7 +314,7 @@ class IntegrationTestRunner:
             import requests
             start_time = time.time()
             response = requests.post(
-                "http://localhost:5432/api/v1/query",
+                "http://localhost:5435/api/v1/query",
                 json={
                     "sql": "SELECT CURRENT_WAREHOUSE(), CURRENT_DATABASE()",
                     "request_id": "test-123"
@@ -514,6 +516,142 @@ class IntegrationTestRunner:
         
         return ServiceGroup(name="Service Integrations", tests=tests)
 
+    def test_sandbox_services(self) -> ServiceGroup:
+        """Test sandbox services (Snowflake and Databricks)"""
+        tests = []
+        
+        # Snowflake Sandbox tests
+        snowflake_health = self.http_test(
+            "Snowflake Sandbox Health",
+            "http://localhost:5435/health"
+        )
+        tests.append(snowflake_health)
+        
+        snowflake_api = self.http_test(
+            "Snowflake Sandbox API",
+            "http://localhost:5435/api/v1/status"
+        )
+        tests.append(snowflake_api)
+        
+        # Test Snowflake SQL query
+        try:
+            import requests
+            start_time = time.time()
+            response = requests.post(
+                "http://localhost:5435/api/v1/query",
+                json={
+                    "sql": "SELECT 1 as test_value",
+                    "request_id": "test-basic"
+                },
+                timeout=self.timeout
+            )
+            duration = time.time() - start_time
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                if result_data.get('success'):
+                    tests.append(TestResult(
+                        name="Snowflake SQL Query",
+                        status=TestStatus.PASS,
+                        message="SQL query executed successfully",
+                        duration=duration
+                    ))
+                else:
+                    tests.append(TestResult(
+                        name="Snowflake SQL Query",
+                        status=TestStatus.FAIL,
+                        message=f"SQL execution failed: {result_data.get('error', 'Unknown')}",
+                        duration=duration
+                    ))
+            else:
+                tests.append(TestResult(
+                    name="Snowflake SQL Query",
+                    status=TestStatus.FAIL,
+                    message=f"HTTP {response.status_code}",
+                    duration=duration
+                ))
+        except Exception as e:
+            tests.append(TestResult(
+                name="Snowflake SQL Query",
+                status=TestStatus.FAIL,
+                message=str(e),
+                duration=0
+            ))
+        
+        # Databricks Sandbox tests
+        databricks_health = self.http_test(
+            "Databricks Sandbox Health",
+            "http://localhost:5434/health"
+        )
+        tests.append(databricks_health)
+        
+        databricks_root = self.http_test(
+            "Databricks Sandbox Root",
+            "http://localhost:5434/"
+        )
+        tests.append(databricks_root)
+        
+        # Test Databricks SQL statement
+        try:
+            start_time = time.time()
+            response = requests.post(
+                "http://localhost:5434/api/2.0/sql/statements",
+                json={
+                    "statement": "SELECT 1 as test_column",
+                    "warehouse_id": "lakehouse_sql_warehouse"
+                },
+                timeout=self.timeout
+            )
+            duration = time.time() - start_time
+            
+            if response.status_code == 200:
+                result_data = response.json()
+                status = result_data.get('status', {})
+                if status.get('state') == 'SUCCEEDED':
+                    tests.append(TestResult(
+                        name="Databricks SQL Statement",
+                        status=TestStatus.PASS,
+                        message="SQL statement executed successfully",
+                        duration=duration
+                    ))
+                else:
+                    tests.append(TestResult(
+                        name="Databricks SQL Statement",
+                        status=TestStatus.FAIL,
+                        message=f"SQL failed: {status.get('state', 'Unknown state')}",
+                        duration=duration
+                    ))
+            else:
+                tests.append(TestResult(
+                    name="Databricks SQL Statement",
+                    status=TestStatus.FAIL,
+                    message=f"HTTP {response.status_code}",
+                    duration=duration
+                ))
+        except Exception as e:
+            tests.append(TestResult(
+                name="Databricks SQL Statement",
+                status=TestStatus.FAIL,
+                message=str(e),
+                duration=0
+            ))
+        
+        # Test Databricks warehouse operations
+        databricks_warehouses = self.http_test(
+            "Databricks Warehouses",
+            "http://localhost:5434/api/2.0/sql/warehouses"
+        )
+        tests.append(databricks_warehouses)
+        
+        # Test Databricks Unity Catalog
+        databricks_catalogs = self.http_test(
+            "Databricks Unity Catalog",
+            "http://localhost:5434/api/2.0/unity-catalog/catalogs"
+        )
+        tests.append(databricks_catalogs)
+        
+        return ServiceGroup(name="Sandbox Services", tests=tests)
+
     def run_all_tests(self, selected_groups: List[str] = None) -> Dict[str, Any]:
         """Run integration tests for selected groups or all if none specified"""
         start_time = time.time()
@@ -526,7 +664,8 @@ class IntegrationTestRunner:
             'core': self.test_core_services,
             'kafka': self.test_kafka_cluster,
             'airflow': self.test_airflow_services,
-            'integrations': self.test_service_integrations
+            'integrations': self.test_service_integrations,
+            'sandbox': self.test_sandbox_services
         }
         
         # Filter to selected groups or run all

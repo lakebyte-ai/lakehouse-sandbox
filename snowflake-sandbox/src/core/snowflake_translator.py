@@ -192,11 +192,17 @@ class SnowflakeToTrinoTranslator:
         transformations = []
         
         for snowflake_func, trino_func in self.function_mappings.items():
-            # Handle simple function name replacements
-            pattern = r'\b' + re.escape(snowflake_func) + r'\b'
-            if re.search(pattern, sql, re.IGNORECASE):
-                sql = re.sub(pattern, trino_func, sql, flags=re.IGNORECASE)
-                transformations.append(f"Translated {snowflake_func} -> {trino_func}")
+            # Handle function calls (with parentheses) first
+            pattern_func_call = r'\b' + re.escape(snowflake_func) + r'\s*\(\s*\)'
+            if re.search(pattern_func_call, sql, re.IGNORECASE):
+                sql = re.sub(pattern_func_call, trino_func, sql, flags=re.IGNORECASE)
+                transformations.append(f"Translated {snowflake_func}() -> {trino_func}")
+            else:
+                # Handle simple function name replacements (without parentheses)
+                pattern = r'\b' + re.escape(snowflake_func) + r'\b'
+                if re.search(pattern, sql, re.IGNORECASE):
+                    sql = re.sub(pattern, trino_func, sql, flags=re.IGNORECASE)
+                    transformations.append(f"Translated {snowflake_func} -> {trino_func}")
         
         # Special handling for complex functions
         sql, special_trans = self._translate_special_functions(sql)

@@ -27,9 +27,10 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ { printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 # === NETWORK MANAGEMENT ===
-network: ## Create the shared Docker network
+network: ## Ensure network is ready for Docker Compose
 	@echo "$(BLUE)Creating shared network...$(NC)"
-	@docker network create local-iceberg-lakehouse 2>/dev/null || echo "Network already exists"
+	@docker network rm local-iceberg-lakehouse 2>/dev/null || echo "Network already cleaned"
+	@echo "Network will be created by Docker Compose"
 
 network-clean: ## Remove the shared Docker network
 	@echo "$(RED)Removing shared network...$(NC)"
@@ -139,7 +140,8 @@ all: network core-up kafka-up airflow-up webui-up ## Start all services includin
 	@echo "  Spark:       http://localhost:8888"
 	@echo "  MinIO:       http://localhost:9001 (admin/password)"
 	@echo "  Nimtable:    http://localhost:13000 (admin/admin)"
-	@echo "  Snowflake:   http://localhost:5432 (Experimental API), http://localhost:5432/docs"
+	@echo "  Snowflake:   http://localhost:5435 (Experimental API), http://localhost:5435/docs"
+	@echo "  Databricks:  http://localhost:5434 (Experimental API), http://localhost:5434/docs"
 
 up: all ## Alias for 'all'
 
@@ -214,6 +216,16 @@ shell-airflow: ## Open bash shell in Airflow webserver container
 shell-trino: ## Open Trino CLI
 	@docker exec -it $$(docker-compose -f $(COMPOSE_CORE) ps -q trino) trino
 
+shell-databricks: ## Open bash shell in Databricks sandbox container
+	@docker exec -it $$(docker-compose -f $(COMPOSE_CORE) ps -q databricks-sandbox) bash
+
+databricks-logs: ## Show Databricks sandbox logs
+	@docker-compose -f $(COMPOSE_CORE) logs -f databricks-sandbox
+
+databricks-restart: ## Restart Databricks sandbox service
+	@echo "$(YELLOW)Restarting Databricks sandbox...$(NC)"
+	@docker-compose -f $(COMPOSE_CORE) restart databricks-sandbox
+
 # === MONITORING ===
 
 watch: ## Watch status of all services (refreshes every 2 seconds)
@@ -249,6 +261,10 @@ test-integrations: ## Test service integrations and networking
 	@echo "$(CYAN)=== SERVICE INTEGRATION TESTS ===$(NC)"
 	@./tests/integration/run_tests.sh --groups integrations
 
+test-sandbox: ## Test sandbox services (Snowflake and Databricks sandboxes)
+	@echo "$(CYAN)=== SANDBOX SERVICES TESTS ===$(NC)"
+	@./tests/integration/run_tests.sh --groups sandbox
+
 test-report: ## Run tests and generate JSON report
 	@echo "$(CYAN)=== INTEGRATION TESTS WITH REPORT ===$(NC)"
 	@mkdir -p reports
@@ -269,11 +285,14 @@ info: ## Show service information and URLs
 	@echo "  Spark Jupyter:     http://localhost:8888"
 	@echo "  MinIO Console:     http://localhost:9001 (admin/password)"
 	@echo "  Nimtable Web:      http://localhost:13000 (admin/admin)"
-	@echo "  Snowflake Sandbox: http://localhost:5432/docs (Experimental)"
+	@echo "  Snowflake Sandbox: http://localhost:5435/docs (Experimental)"
+	@echo "  Databricks Sandbox: http://localhost:5434/docs (Experimental)"
 	@echo ""
 	@echo "$(YELLOW)API Endpoints:$(NC)"
 	@echo "  MinIO API:         http://localhost:9000"
 	@echo "  Nimtable API:      http://localhost:18182"
-	@echo "  Snowflake API:     http://localhost:5432/api/v1"
+	@echo "  Snowflake API:     http://localhost:5435/api/v1"
+	@echo "  Databricks API:    http://localhost:5434/api/2.0"
+	@echo "  Databricks Metrics: http://localhost:18000/metrics"
 	@echo "  Airflow Postgres:  localhost:5433"
 	@echo "  Kafka Broker:      localhost:9092"

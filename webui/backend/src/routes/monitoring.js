@@ -143,4 +143,52 @@ router.delete('/history', (req, res) => {
   }
 });
 
+/**
+ * GET /monitoring/services
+ * Get health status of all lakehouse services
+ */
+router.get('/services', async (req, res) => {
+  try {
+    const services = await resourceMonitorService.getServicesHealth();
+    res.json({
+      services,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get services health',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /monitoring/services/:serviceName/metrics
+ * Get metrics from a specific service
+ */
+router.get('/services/:serviceName/metrics', async (req, res) => {
+  try {
+    const { serviceName } = req.params;
+    const metrics = await resourceMonitorService.getServiceMetrics(serviceName);
+    
+    if (!metrics) {
+      return res.status(404).json({
+        error: 'Service not found',
+        serviceName
+      });
+    }
+
+    res.json({
+      serviceName,
+      metrics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to get service metrics',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;

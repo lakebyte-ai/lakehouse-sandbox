@@ -108,6 +108,22 @@ export const apiService = {
     const response = await api.post(`/containers/${containerName}/restart`);
     return response.data;
   },
+
+  // Monitoring
+  async getServicesHealth() {
+    const response = await api.get('/monitoring/services');
+    return response.data;
+  },
+
+  async getServiceMetrics(serviceName: string) {
+    const response = await api.get(`/monitoring/services/${serviceName}/metrics`);
+    return response.data;
+  },
+
+  async getResourceSnapshot() {
+    const response = await api.get('/monitoring/snapshot');
+    return response.data;
+  },
 };
 
 export default apiService;
