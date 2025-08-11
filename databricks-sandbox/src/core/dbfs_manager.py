@@ -162,4 +162,252 @@ class DBFSManager:
                     # Might be a directory, check for objects with this prefix
                     s3_prefix = s3_key + '/' if not s3_key.endswith('/') else s3_key
                     
-                    response = self._s3_client.list_objects_v2(\n                        Bucket=self._bucket_name, \n                        Prefix=s3_prefix,\n                        MaxKeys=1\n                    )\n                    \n                    if response.get('Contents') or response.get('CommonPrefixes'):\n                        return {\n                            \"path\": path,\n                            \"is_dir\": True,\n                            \"file_size\": 0,\n                            \"modification_time\": int(time.time() * 1000)\n                        }\n                    else:\n                        return None\n                else:\n                    raise\n                    \n        except ClientError as e:\n            logger.error(\"Failed to get DBFS file info\", path=path, error=str(e))\n            return None\n    \n    def read_file(self, path: str, offset: int = 0, length: int = None) -> bytes:\n        \"\"\"Read file content from DBFS.\"\"\"\n        try:\n            s3_key = self._dbfs_to_s3_path(path)\n            \n            # Prepare range header if needed\n            kwargs = {'Bucket': self._bucket_name, 'Key': s3_key}\n            \n            if offset > 0 or length is not None:\n                if length is not None:\n                    range_header = f\"bytes={offset}-{offset + length - 1}\"\n                else:\n                    range_header = f\"bytes={offset}-\"\n                kwargs['Range'] = range_header\n            \n            response = self._s3_client.get_object(**kwargs)\n            return response['Body'].read()\n            \n        except ClientError as e:\n            if e.response['Error']['Code'] == 'NoSuchKey':\n                raise FileNotFoundError(f\"File not found: {path}\")\n            else:\n                logger.error(\"Failed to read DBFS file\", path=path, error=str(e))\n                raise Exception(f\"Failed to read file: {str(e)}\")\n    \n    def write_file(self, path: str, data: bytes, overwrite: bool = False) -> bool:\n        \"\"\"Write file content to DBFS.\"\"\"\n        try:\n            s3_key = self._dbfs_to_s3_path(path)\n            \n            # Check if file exists\n            if not overwrite:\n                try:\n                    self._s3_client.head_object(Bucket=self._bucket_name, Key=s3_key)\n                    raise Exception(f\"File already exists: {path}\")\n                except ClientError as e:\n                    if e.response['Error']['Code'] != '404':\n                        raise\n            \n            # Write file\n            self._s3_client.put_object(\n                Bucket=self._bucket_name,\n                Key=s3_key,\n                Body=data\n            )\n            \n            logger.info(\"File written to DBFS\", path=path, size=len(data))\n            return True\n            \n        except ClientError as e:\n            logger.error(\"Failed to write DBFS file\", path=path, error=str(e))\n            raise Exception(f\"Failed to write file: {str(e)}\")\n    \n    def delete_file(self, path: str, recursive: bool = False) -> bool:\n        \"\"\"Delete file or directory from DBFS.\"\"\"\n        try:\n            s3_key = self._dbfs_to_s3_path(path)\n            \n            # Check if it's a single file\n            try:\n                self._s3_client.head_object(Bucket=self._bucket_name, Key=s3_key)\n                # It's a file, delete it\n                self._s3_client.delete_object(Bucket=self._bucket_name, Key=s3_key)\n                logger.info(\"File deleted from DBFS\", path=path)\n                return True\n                \n            except ClientError as e:\n                if e.response['Error']['Code'] == '404':\n                    # Might be a directory\n                    s3_prefix = s3_key + '/' if not s3_key.endswith('/') else s3_key\n                    \n                    # List objects with this prefix\n                    paginator = self._s3_client.get_paginator('list_objects_v2')\n                    objects_to_delete = []\n                    \n                    for page in paginator.paginate(Bucket=self._bucket_name, Prefix=s3_prefix):\n                        for obj in page.get('Contents', []):\n                            objects_to_delete.append({'Key': obj['Key']})\n                    \n                    if not objects_to_delete:\n                        raise FileNotFoundError(f\"Path not found: {path}\")\n                    \n                    if not recursive and len(objects_to_delete) > 1:\n                        raise Exception(f\"Directory not empty: {path}\")\n                    \n                    # Delete objects in batches\n                    while objects_to_delete:\n                        batch = objects_to_delete[:1000]  # S3 batch delete limit\n                        objects_to_delete = objects_to_delete[1000:]\n                        \n                        self._s3_client.delete_objects(\n                            Bucket=self._bucket_name,\n                            Delete={'Objects': batch}\n                        )\n                    \n                    logger.info(\"Directory deleted from DBFS\", path=path, \n                               file_count=len(objects_to_delete))\n                    return True\n                else:\n                    raise\n                    \n        except ClientError as e:\n            logger.error(\"Failed to delete DBFS path\", path=path, error=str(e))\n            raise Exception(f\"Failed to delete: {str(e)}\")\n    \n    def move_file(self, source_path: str, destination_path: str) -> bool:\n        \"\"\"Move/rename file or directory in DBFS.\"\"\"\n        try:\n            source_key = self._dbfs_to_s3_path(source_path)\n            dest_key = self._dbfs_to_s3_path(destination_path)\n            \n            # Check if source is a single file\n            try:\n                self._s3_client.head_object(Bucket=self._bucket_name, Key=source_key)\n                \n                # Copy file\n                copy_source = {'Bucket': self._bucket_name, 'Key': source_key}\n                self._s3_client.copy_object(\n                    CopySource=copy_source,\n                    Bucket=self._bucket_name,\n                    Key=dest_key\n                )\n                \n                # Delete original\n                self._s3_client.delete_object(Bucket=self._bucket_name, Key=source_key)\n                \n                logger.info(\"File moved in DBFS\", source=source_path, dest=destination_path)\n                return True\n                \n            except ClientError as e:\n                if e.response['Error']['Code'] == '404':\n                    # Might be a directory\n                    source_prefix = source_key + '/' if not source_key.endswith('/') else source_key\n                    dest_prefix = dest_key + '/' if not dest_key.endswith('/') else dest_key\n                    \n                    # List and move all objects\n                    paginator = self._s3_client.get_paginator('list_objects_v2')\n                    moved_count = 0\n                    \n                    for page in paginator.paginate(Bucket=self._bucket_name, Prefix=source_prefix):\n                        for obj in page.get('Contents', []):\n                            old_key = obj['Key']\n                            # Replace source prefix with dest prefix\n                            new_key = dest_prefix + old_key[len(source_prefix):]\n                            \n                            # Copy object\n                            copy_source = {'Bucket': self._bucket_name, 'Key': old_key}\n                            self._s3_client.copy_object(\n                                CopySource=copy_source,\n                                Bucket=self._bucket_name,\n                                Key=new_key\n                            )\n                            \n                            # Delete original\n                            self._s3_client.delete_object(Bucket=self._bucket_name, Key=old_key)\n                            moved_count += 1\n                    \n                    if moved_count == 0:\n                        raise FileNotFoundError(f\"Source path not found: {source_path}\")\n                    \n                    logger.info(\"Directory moved in DBFS\", source=source_path, \n                               dest=destination_path, file_count=moved_count)\n                    return True\n                else:\n                    raise\n                    \n        except ClientError as e:\n            logger.error(\"Failed to move DBFS path\", source=source_path, \n                        dest=destination_path, error=str(e))\n            raise Exception(f\"Failed to move: {str(e)}\")\n    \n    def create_directory(self, path: str) -> bool:\n        \"\"\"Create directory in DBFS.\"\"\"\n        try:\n            s3_key = self._dbfs_to_s3_path(path)\n            \n            # Ensure it ends with slash for directory marker\n            if not s3_key.endswith('/'):\n                s3_key += '/'\n            \n            # Create empty object as directory marker\n            self._s3_client.put_object(\n                Bucket=self._bucket_name,\n                Key=s3_key,\n                Body=b''\n            )\n            \n            logger.info(\"Directory created in DBFS\", path=path)\n            return True\n            \n        except ClientError as e:\n            logger.error(\"Failed to create DBFS directory\", path=path, error=str(e))\n            raise Exception(f\"Failed to create directory: {str(e)}\")\n    \n    def get_upload_url(self, path: str, expires_in: int = 3600) -> str:\n        \"\"\"Generate presigned URL for file upload.\"\"\"\n        try:\n            s3_key = self._dbfs_to_s3_path(path)\n            \n            url = self._s3_client.generate_presigned_url(\n                'put_object',\n                Params={'Bucket': self._bucket_name, 'Key': s3_key},\n                ExpiresIn=expires_in\n            )\n            \n            return url\n            \n        except ClientError as e:\n            logger.error(\"Failed to generate DBFS upload URL\", path=path, error=str(e))\n            raise Exception(f\"Failed to generate upload URL: {str(e)}\")\n    \n    def get_download_url(self, path: str, expires_in: int = 3600) -> str:\n        \"\"\"Generate presigned URL for file download.\"\"\"\n        try:\n            s3_key = self._dbfs_to_s3_path(path)\n            \n            url = self._s3_client.generate_presigned_url(\n                'get_object',\n                Params={'Bucket': self._bucket_name, 'Key': s3_key},\n                ExpiresIn=expires_in\n            )\n            \n            return url\n            \n        except ClientError as e:\n            logger.error(\"Failed to generate DBFS download URL\", path=path, error=str(e))\n            raise Exception(f\"Failed to generate download URL: {str(e)}\")
+                    response = self._s3_client.list_objects_v2(
+                        Bucket=self._bucket_name, 
+                        Prefix=s3_prefix,
+                        MaxKeys=1
+                    )
+                    
+                    if response.get('Contents') or response.get('CommonPrefixes'):
+                        return {
+                            "path": path,
+                            "is_dir": True,
+                            "file_size": 0,
+                            "modification_time": int(time.time() * 1000)
+                        }
+                    else:
+                        return None
+                else:
+                    raise
+                    
+        except ClientError as e:
+            logger.error("Failed to get DBFS file info", path=path, error=str(e))
+            return None
+    
+    def read_file(self, path: str, offset: int = 0, length: int = None) -> bytes:
+        """Read file content from DBFS."""
+        try:
+            s3_key = self._dbfs_to_s3_path(path)
+            
+            # Prepare range header if needed
+            kwargs = {'Bucket': self._bucket_name, 'Key': s3_key}
+            
+            if offset > 0 or length is not None:
+                if length is not None:
+                    range_header = f"bytes={offset}-{offset + length - 1}"
+                else:
+                    range_header = f"bytes={offset}-"
+                kwargs['Range'] = range_header
+            
+            response = self._s3_client.get_object(**kwargs)
+            return response['Body'].read()
+            
+        except ClientError as e:
+            if e.response['Error']['Code'] == 'NoSuchKey':
+                raise FileNotFoundError(f"File not found: {path}")
+            else:
+                logger.error("Failed to read DBFS file", path=path, error=str(e))
+                raise Exception(f"Failed to read file: {str(e)}")
+    
+    def write_file(self, path: str, data: bytes, overwrite: bool = False) -> bool:
+        """Write file content to DBFS."""
+        try:
+            s3_key = self._dbfs_to_s3_path(path)
+            
+            # Check if file exists
+            if not overwrite:
+                try:
+                    self._s3_client.head_object(Bucket=self._bucket_name, Key=s3_key)
+                    raise Exception(f"File already exists: {path}")
+                except ClientError as e:
+                    if e.response['Error']['Code'] != '404':
+                        raise
+            
+            # Write file
+            self._s3_client.put_object(
+                Bucket=self._bucket_name,
+                Key=s3_key,
+                Body=data
+            )
+            
+            logger.info("File written to DBFS", path=path, size=len(data))
+            return True
+            
+        except ClientError as e:
+            logger.error("Failed to write DBFS file", path=path, error=str(e))
+            raise Exception(f"Failed to write file: {str(e)}")
+    
+    def delete_file(self, path: str, recursive: bool = False) -> bool:
+        """Delete file or directory from DBFS."""
+        try:
+            s3_key = self._dbfs_to_s3_path(path)
+            
+            # Check if it's a single file
+            try:
+                self._s3_client.head_object(Bucket=self._bucket_name, Key=s3_key)
+                # It's a file, delete it
+                self._s3_client.delete_object(Bucket=self._bucket_name, Key=s3_key)
+                logger.info("File deleted from DBFS", path=path)
+                return True
+                
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    # Might be a directory
+                    s3_prefix = s3_key + '/' if not s3_key.endswith('/') else s3_key
+                    
+                    # List objects with this prefix
+                    paginator = self._s3_client.get_paginator('list_objects_v2')
+                    objects_to_delete = []
+                    
+                    for page in paginator.paginate(Bucket=self._bucket_name, Prefix=s3_prefix):
+                        for obj in page.get('Contents', []):
+                            objects_to_delete.append({'Key': obj['Key']})
+                    
+                    if not objects_to_delete:
+                        raise FileNotFoundError(f"Path not found: {path}")
+                    
+                    if not recursive and len(objects_to_delete) > 1:
+                        raise Exception(f"Directory not empty: {path}")
+                    
+                    # Delete objects in batches
+                    while objects_to_delete:
+                        batch = objects_to_delete[:1000]  # S3 batch delete limit
+                        objects_to_delete = objects_to_delete[1000:]
+                        
+                        self._s3_client.delete_objects(
+                            Bucket=self._bucket_name,
+                            Delete={'Objects': batch}
+                        )
+                    
+                    logger.info("Directory deleted from DBFS", path=path, 
+                               file_count=len(objects_to_delete))
+                    return True
+                else:
+                    raise
+                    
+        except ClientError as e:
+            logger.error("Failed to delete DBFS path", path=path, error=str(e))
+            raise Exception(f"Failed to delete: {str(e)}")
+    
+    def move_file(self, source_path: str, destination_path: str) -> bool:
+        """Move/rename file or directory in DBFS."""
+        try:
+            source_key = self._dbfs_to_s3_path(source_path)
+            dest_key = self._dbfs_to_s3_path(destination_path)
+            
+            # Check if source is a single file
+            try:
+                self._s3_client.head_object(Bucket=self._bucket_name, Key=source_key)
+                
+                # Copy file
+                copy_source = {'Bucket': self._bucket_name, 'Key': source_key}
+                self._s3_client.copy_object(
+                    CopySource=copy_source,
+                    Bucket=self._bucket_name,
+                    Key=dest_key
+                )
+                
+                # Delete original
+                self._s3_client.delete_object(Bucket=self._bucket_name, Key=source_key)
+                
+                logger.info("File moved in DBFS", source=source_path, dest=destination_path)
+                return True
+                
+            except ClientError as e:
+                if e.response['Error']['Code'] == '404':
+                    # Might be a directory
+                    source_prefix = source_key + '/' if not source_key.endswith('/') else source_key
+                    dest_prefix = dest_key + '/' if not dest_key.endswith('/') else dest_key
+                    
+                    # List and move all objects
+                    paginator = self._s3_client.get_paginator('list_objects_v2')
+                    moved_count = 0
+                    
+                    for page in paginator.paginate(Bucket=self._bucket_name, Prefix=source_prefix):
+                        for obj in page.get('Contents', []):
+                            old_key = obj['Key']
+                            # Replace source prefix with dest prefix
+                            new_key = dest_prefix + old_key[len(source_prefix):]
+                            
+                            # Copy object
+                            copy_source = {'Bucket': self._bucket_name, 'Key': old_key}
+                            self._s3_client.copy_object(
+                                CopySource=copy_source,
+                                Bucket=self._bucket_name,
+                                Key=new_key
+                            )
+                            
+                            # Delete original
+                            self._s3_client.delete_object(Bucket=self._bucket_name, Key=old_key)
+                            moved_count += 1
+                    
+                    if moved_count == 0:
+                        raise FileNotFoundError(f"Source path not found: {source_path}")
+                    
+                    logger.info("Directory moved in DBFS", source=source_path, 
+                               dest=destination_path, file_count=moved_count)
+                    return True
+                else:
+                    raise
+                    
+        except ClientError as e:
+            logger.error("Failed to move DBFS path", source=source_path, 
+                        dest=destination_path, error=str(e))
+            raise Exception(f"Failed to move: {str(e)}")
+    
+    def create_directory(self, path: str) -> bool:
+        """Create directory in DBFS."""
+        try:
+            s3_key = self._dbfs_to_s3_path(path)
+            
+            # Ensure it ends with slash for directory marker
+            if not s3_key.endswith('/'):
+                s3_key += '/'
+            
+            # Create empty object as directory marker
+            self._s3_client.put_object(
+                Bucket=self._bucket_name,
+                Key=s3_key,
+                Body=b''
+            )
+            
+            logger.info("Directory created in DBFS", path=path)
+            return True
+            
+        except ClientError as e:
+            logger.error("Failed to create DBFS directory", path=path, error=str(e))
+            raise Exception(f"Failed to create directory: {str(e)}")
+    
+    def get_upload_url(self, path: str, expires_in: int = 3600) -> str:
+        """Generate presigned URL for file upload."""
+        try:
+            s3_key = self._dbfs_to_s3_path(path)
+            
+            url = self._s3_client.generate_presigned_url(
+                'put_object',
+                Params={'Bucket': self._bucket_name, 'Key': s3_key},
+                ExpiresIn=expires_in
+            )
+            
+            return url
+            
+        except ClientError as e:
+            logger.error("Failed to generate DBFS upload URL", path=path, error=str(e))
+            raise Exception(f"Failed to generate upload URL: {str(e)}")
+    
+    def get_download_url(self, path: str, expires_in: int = 3600) -> str:
+        """Generate presigned URL for file download."""
+        try:
+            s3_key = self._dbfs_to_s3_path(path)
+            
+            url = self._s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self._bucket_name, 'Key': s3_key},
+                ExpiresIn=expires_in
+            )
+            
+            return url
+            
+        except ClientError as e:
+            logger.error("Failed to generate DBFS download URL", path=path, error=str(e))
+            raise Exception(f"Failed to generate download URL: {str(e)}")
