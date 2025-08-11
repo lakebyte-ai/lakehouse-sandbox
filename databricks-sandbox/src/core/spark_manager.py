@@ -29,8 +29,11 @@ class SparkManager:
         """Initialize the Spark connection."""
         try:
             # Create Spark session with Iceberg, Delta Lake and S3 configuration
+            jar_path = "/app/jars/delta-core_2.12-2.4.0.jar,/app/jars/delta-spark_2.12-2.4.0.jar,/app/jars/iceberg-spark-runtime-3.5_2.12-1.4.2.jar,/app/jars/hadoop-aws-3.3.4.jar"
+            
             self._spark_session = SparkSession.builder \
                 .appName(settings.spark_app_name) \
+                .config("spark.jars", jar_path) \
                 .config("spark.sql.extensions", "org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions,io.delta.sql.DeltaSparkSessionExtension") \
                 .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
                 .config("spark.sql.catalog.iceberg", "org.apache.iceberg.spark.SparkCatalog") \
